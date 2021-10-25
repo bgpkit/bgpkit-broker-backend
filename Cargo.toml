@@ -1,0 +1,44 @@
+[package]
+name = "billboard-backend"
+version = "0.3.0"
+authors = ["Mingwei Zhang <mingwei@bgpkit.com>"]
+edition = "2018"
+
+[[bin]]
+name = "billboard-updater"
+path = "src/bin/updater/main.rs"
+
+[[bin]]
+name = "billboard-api"
+path = "src/bin/api/main.rs"
+
+[dependencies]
+
+reqwest = "0.11"
+regex="1"
+chrono="0.4"
+env_logger="0.9"
+log="0.4.14"
+tokio = { version = "1", features = ["full"] }
+num_cpus = "1.13.0"
+
+# cli dependency
+clap = "3.0.0-beta.4"
+indicatif = "0.15"
+
+# json feature dependency
+serde = {version = "1", features = ["derive"]}
+serde_json = {version = "1"}
+
+futures = "0.3"
+
+# database dependency
+diesel = {version="1.4.4", features=["postgres", "r2d2"]}
+dotenv = "0.15.0"
+
+# kafka
+rdkafka = "0.26"
+
+# api
+actix-web = "3"
+r2d2="0.8"

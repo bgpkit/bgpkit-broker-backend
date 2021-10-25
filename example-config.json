@@ -1,0 +1,22 @@
+{
+  "projects": [
+    {
+      "name": "riperis",
+      "collectors": [
+        {
+          "id": "rrc00",
+          "url": "http://data.ris.ripe.net/rrc00"
+        }
+      ]
+    },
+    {
+      "name": "routeviews",
+      "collectors": [
+        {
+          "id": "route-views2",
+          "url": "http://archive.routeviews.org/bgpdata"
+        }
+      ]
+    }
+  ]
+}
