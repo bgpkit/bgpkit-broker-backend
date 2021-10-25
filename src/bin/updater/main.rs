@@ -2,12 +2,12 @@ use std::env;
 use clap::Clap;
 use log::info;
 use futures::future::join_all;
-use billboard_backend::scrapers::{RouteViewsScraper, RipeRisScraper};
-use billboard_backend::config::Config;
-use billboard_backend::db::DbConnection;
-use billboard_backend::models::Collector;
-use billboard_backend::kafka::KafkaProducer;
 use dotenv;
+use bgpkit_broker_backend::config::Config;
+use bgpkit_broker_backend::db::DbConnection;
+use bgpkit_broker_backend::kafka::KafkaProducer;
+use bgpkit_broker_backend::models::Collector;
+use bgpkit_broker_backend::scrapers::{RipeRisScraper, RouteViewsScraper};
 
 #[derive(Clap)]
 struct Opts {

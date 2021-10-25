@@ -76,30 +76,4 @@ mod tests {
         conn.insert_items(&entries);
     }
 
-    #[test]
-    fn test_search() {
-        env_logger::init();
-        let conn = DbConnection::new("postgres://billboard_user:billboard@10.2.2.103/billboard");
-
-        let item = &conn.search_items(None, None, None, Some("rrc"), None, Some(1))[0];
-        assert!(item.collector_id.starts_with("rrc"));
-
-        let item = &conn.search_items(None, None, None, Some("routeviews"), None, Some(1))[0];
-        assert!(item.collector_id.starts_with("route-views"));
-
-        let item = &conn.search_items(None, None, Some("rrc01"), None, None, Some(1))[0];
-        assert_eq!(item.collector_id, "rrc01");
-
-        let item = &conn.search_items(Some(1340882100), Some(1340882100), None, None, None, Some(1))[0];
-        assert_eq!(item.timestamp, 1340882100);
-
-        let item = &conn.search_items(None, None, None, None, Some("rib"), Some(1))[0];
-        assert_eq!(item.data_type, "rib");
-
-        let item = &conn.search_items(None, None, None, None, Some("update"), Some(1))[0];
-        assert_eq!(item.data_type, "update");
-
-        let items = &conn.search_items(None, None, None, None, None, Some(2));
-        assert_eq!(items.len(), 2);
-    }
 }

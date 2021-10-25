@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, TextExpressionMethods, RunQueryDsl};
 use diesel::dsl::count_star;
 use diesel::result::Error;
-use billboard_backend::models::{Collector, Item, UpdateTime};
+use bgpkit_broker_backend::models::{Collector, Item, UpdateTime};
 use crate::pagination::LoadPaginated;
 
 const MAX_PAGE_SIZE: i64 = 100_000;
@@ -44,9 +44,7 @@ pub struct ItemsResult {
 /// - types
 pub fn search_items(conn: &PgConnection, info: Info) -> Result<ItemsResult, Error> {
 
-    // use billboard_backend::db::schema::items::columns::{collector_id, timestamp, data_type};
-    // use billboard_backend::db::schema::items::dsl::items;
-    use billboard_backend::db::schema::items;
+    use bgpkit_broker_backend::db::schema::items;
     let mut query = items::table.into_boxed();
 
     // timestamps filter
@@ -115,16 +113,16 @@ pub fn search_items(conn: &PgConnection, info: Info) -> Result<ItemsResult, Erro
 }
 
 pub fn get_collectors(conn: &PgConnection) -> Result<Vec<Collector>, Error> {
-    use billboard_backend::db::schema::collectors::dsl::*;
+    use bgpkit_broker_backend::db::schema::collectors::dsl::*;
     collectors.load::<Collector>(conn)
 }
 
 pub fn get_latest_timestamps(conn: &PgConnection) -> Result<Vec<UpdateTime>, Error> {
-    use billboard_backend::db::schema::latest_times::dsl::*;
+    use bgpkit_broker_backend::db::schema::latest_times::dsl::*;
     latest_times.load::<UpdateTime>(conn)
 }
 
 pub fn get_total_count(conn: &PgConnection) -> Result<i64, Error> {
-    use billboard_backend::db::schema::items::dsl::*;
+    use bgpkit_broker_backend::db::schema::items::dsl::*;
     items.select(count_star()).first(conn)
 }

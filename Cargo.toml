@@ -1,15 +1,15 @@
 [package]
-name = "billboard-backend"
+name = "bgpkit-broker-backend"
 version = "0.3.0"
 authors = ["Mingwei Zhang <mingwei@bgpkit.com>"]
 edition = "2018"
 
 [[bin]]
-name = "billboard-updater"
+name = "bgpkit-broker-updater"
 path = "src/bin/updater/main.rs"
 
 [[bin]]
-name = "billboard-api"
+name = "bgpkit-broker-api"
 path = "src/bin/api/main.rs"
 
 [dependencies]
