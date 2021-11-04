@@ -54,7 +54,7 @@ mod tests {
     #[test]
     fn test_insert() {
         env_logger::init();
-        let conn = DbConnection::new("postgres://billboard_user:billboard@10.2.2.103/billboard");
+        let conn = DbConnection::new("postgres://broker_user:broker@10.2.2.103/broker");
 
         let collectors = vec![Collector{
             id: "rrc00".to_string(),

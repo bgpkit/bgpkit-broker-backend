@@ -1,11 +1,11 @@
-# Billboard API
+# BGPKIT Broker API
 
-Billboard API accesses backend database and provides API endpoints
+BGPKIT Broker API accesses backend database and provides API endpoints
 for searching BGP data files.
 
 ## Design
 
-`actix-web` is the web-framework of choice for billboard-api. It
+`actix-web` is the web-framework of choice for bgpkit-broker-api. It
 is known for speed and provides great integration with `diesel`
 (our database ORM library). Other frameworks like `Rocket` could 
 also be a good choice that we might explore in the future.

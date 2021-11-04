@@ -22,5 +22,5 @@ Data dump frequencies:
 ### broker-scraper
 1. user specify the collectors to gather information from
 2. user specify scrape mode: scrape-all, or scrape-latest
-3. billboard spawn tasks for scraping months of data for each collector
-4. billboard backend handles saving scraped data
+3. broker spawn tasks for scraping months of data for each collector
+4. broker backend handles saving scraped data

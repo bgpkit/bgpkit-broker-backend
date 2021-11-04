@@ -78,7 +78,7 @@ fn main () {
     let conn = DbConnection::new(&db_url);
     conn.insert_collectors(&collectors);
 
-    let topic = opts.kafka_topic.clone().unwrap_or("billboard-new-items".to_string());
+    let topic = opts.kafka_topic.clone().unwrap_or("broker-new-items".to_string());
     let kafka_producer = KafkaProducer::new(  &opts.kafka_broker,  &topic);
 
 
