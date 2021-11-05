@@ -16,6 +16,7 @@ services:
       POSTGRES_DB: broker
     volumes:
       - ./dbinit.sh:/docker-entrypoint-initdb.d/dbinit.sh
+      - dbdata:/bitnami/postgresql
     networks:
       - app-tier
 
@@ -34,3 +35,6 @@ services:
       - postgres
     networks:
       - app-tier
+
+volumes:
+  dbdata:
