@@ -40,6 +40,20 @@ The documentation is hosted at: https://docs.broker.bgpkit.com/
 We also provide native Rust API to access the broker data in a more ergonomic way.
 Please visit our [Rust API repository](https://github.com/bgpkit/bgpkit-broker) to learn more.
 
+## Deployment
+
+### Deploying with Docker
+
+Here is a step-by-step guide for deploying BGPKIT Broker with Docker
+
+1. Checkout the repository
+2. cd into `deployment` directory
+3. run `docker-compose up -d`
+
+The initial database bootstrap phase would take about 3-5 minutes depending on your deployment environment.
+
+After the initial bootstrap phase is done, the API service should be up and running, currently hosted at port `8080`. You can modify the port in `docker-compose.yml` file. In the mean time, a cronjob service also started, crawling collectors for recent data every 5 minutes. The frequency can be configured in the `update.cron`. It is not recommended to go more frequent than one crawl per 5 minutes.
+
 ## LICENSE
 
 See [LICENSE][LICENSE] file for details. 
