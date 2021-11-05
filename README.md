@@ -54,6 +54,12 @@ The initial database bootstrap phase would take about 3-5 minutes depending on y
 
 After the initial bootstrap phase is done, the API service should be up and running, currently hosted at port `8080`. You can modify the port in `docker-compose.yml` file. In the mean time, a cronjob service also started, crawling collectors for recent data every 5 minutes. The frequency can be configured in the `update.cron`. It is not recommended to go more frequent than one crawl per 5 minutes.
 
+You can check out if the API is running by running:
+```bash
+curl localhost:8080/v1/meta/collectors
+```
+It should give you all the currently indexed data collectors.
+
 ## LICENSE
 
 See [LICENSE][LICENSE] file for details. 
