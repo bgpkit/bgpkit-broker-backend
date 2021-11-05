@@ -33,7 +33,7 @@ struct Opts {
 
     /// Kafka broker URL
     #[clap(long)]
-    kafka_broker: String,
+    kafka_broker: Option<String>,
 
     /// Kafka topic
     #[clap(long)]
@@ -78,9 +78,15 @@ fn main () {
     let conn = DbConnection::new(&db_url);
     conn.insert_collectors(&collectors);
 
-    let topic = opts.kafka_topic.clone().unwrap_or("broker-new-items".to_string());
-    let kafka_producer = KafkaProducer::new(  &opts.kafka_broker,  &topic);
-
+    let kafka: Box<KafkaProducer>;
+    let kafka_producer = match &opts.kafka_broker {
+        None => { None }
+        Some(b) => {
+            let topic = &opts.kafka_topic.clone().unwrap_or("broker-new-items".to_string());
+            kafka = Box::new(KafkaProducer::new(  b.as_str(),  topic));
+            Some(kafka.as_ref())
+        }
+    };
 
     rt.block_on(async {
         let rv_scraper = RouteViewsScraper{};
@@ -92,10 +98,10 @@ fn main () {
         collectors.iter().for_each(|c| {
             match c.project.as_str() {
                 "routeviews" => {
-                    rv_futures.push(rv_scraper.scrape(c, opts.latest.clone(), Some(&conn), Some(&kafka_producer)));
+                    rv_futures.push(rv_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer));
                 }
                 "riperis" => {
-                    ris_futures.push(ris_scraper.scrape(c, opts.latest.clone(), Some(&conn), Some(&kafka_producer)));
+                    ris_futures.push(ris_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer));
                 }
                 _ => {panic!("")}
             }

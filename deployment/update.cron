@@ -1,0 +1,1 @@
+*/5 * * * * RUST_LOG=info /usr/local/bin/bgpkit-broker-updater -c /usr/local/etc/bgpkit-broker-collectors.conf -l -d postgres://broker_user:broker@postgres/broker 2>/tmp/bgpkit-broker-updater.log
