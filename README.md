@@ -73,4 +73,4 @@ BGPKIT is a small-team start-up that focus on building the best tooling for BGP 
 experience working with BGP data and believe that our work can enable our users to start keeping tracks of BGP data
 on their own turf. Learn more about what services we provide at https://bgpkit.com.
 
-<a href="https://bgpkit.com"><img src="https://bgpkit.com/Original%20Logo%20Cropped.png" alt="https://bgpkit.com/favicon.ico" width="200"/></a>
+<a href="https://bgpkit.com"><img src="https://spaces.bgpkit.org/assets/logos/wide-solid.png" width="200"/></a>
