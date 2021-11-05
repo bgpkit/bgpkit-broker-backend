@@ -62,7 +62,7 @@ It should give you all the currently indexed data collectors.
 
 ## LICENSE
 
-See [LICENSE][LICENSE] file for details. 
+See [LICENSE](LICENSE) file for details. 
 
 In summary, the BGPKIT Broker backend is free for research and education usages.
 For commercial usage or creating public access points, please contact us at contact@bgpkit.com.
