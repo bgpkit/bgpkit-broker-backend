@@ -1,15 +1,16 @@
 #+TITLE: BGPKIT Broker Backend
 
-BGPKIT Broker Backend is the backend API and data collection software for
+BGPKIT Broker Backend is the backend API and data collection implementation for
 the [[https://bgpkit.com/broker][BGPKIT Broker project]].
+
+Users can use this repository to deploy a BGPKIT Broker instance on their own
+equipment, and it **free for researchers and educators**! See more in [[#deployment][Deployment]]
+and [[#license][LICENSE]] sections.
 
 * Table of Content                                                      :TOC:
 - [[#bgpkit-broker-primer][BGPKIT Broker Primer]]
+- [[#api-spec][API Spec]]
 - [[#data-sources][Data Sources]]
-- [[#components][Components]]
-  - [[#broker-updater][broker-updater]]
-  - [[#broker-api][broker-api]]
-  - [[#rust-api][Rust API]]
 - [[#deployment][Deployment]]
 - [[#license][LICENSE]]
 
@@ -22,13 +23,82 @@ At a high level, the BGPKIT Broker is a REST API service that provides search
 capability for BGP MRT archive files from various data collection projects. An
 user can search for matching archive files with simple REST API calls.
 
+For example, we want to learn about exactly what BGP updates were involved that
+caused Facebook’s outage for multiple hours on Oct. 4th, 2021. We can use the
+following REST call to the BGPKIT Broker API:
+
+#+begin_src restclient :exports both
+GET https://api.broker.bgpkit.com/v1/search?start_ts=1633362000&end_ts=1633363200&data_type=update&page_size=5&page=1
+#+end_src
+
+#+RESULTS:
+#+BEGIN_SRC js
+{
+  "data": {
+    "count": 5,
+    "current_page": 1,
+    "items": [
+      {
+        "collector_id": "rrc00",
+        "data_type": "update",
+        "timestamp": 1633362000,
+        "url": "http://data.ris.ripe.net/rrc00/2021.10/updates.20211004.1540.gz"
+      },
+      {
+        "collector_id": "rrc01",
+        "data_type": "update",
+        "timestamp": 1633362000,
+        "url": "http://data.ris.ripe.net/rrc01/2021.10/updates.20211004.1540.gz"
+      },
+      {
+        "collector_id": "rrc03",
+        "data_type": "update",
+        "timestamp": 1633362000,
+        "url": "http://data.ris.ripe.net/rrc03/2021.10/updates.20211004.1540.gz"
+      },
+      {
+        "collector_id": "rrc04",
+        "data_type": "update",
+        "timestamp": 1633362000,
+        "url": "http://data.ris.ripe.net/rrc04/2021.10/updates.20211004.1540.gz"
+      },
+      {
+        "collector_id": "rrc05",
+        "data_type": "update",
+        "timestamp": 1633362000,
+        "url": "http://data.ris.ripe.net/rrc05/2021.10/updates.20211004.1540.gz"
+      }
+    ],
+    "page_size": 5,
+    "total_pages": 37
+  },
+  "error": null
+}
+// GET https://api.broker.bgpkit.com/v1/search?start_ts=1633362000&end_ts=1633363200&data_type=update&page_size=5&page=1
+// HTTP/1.1 200 OK
+// Content-Length: 796
+// Content-Type: application/json
+// Date: Sat, 06 Nov 2021 20:10:12 GMT
+// Server: Caddy
+// Request duration: 0.114169s
+#+END_SRC
+
+Here is a break-down of the call parameters:
+- ~start_ts=1633362000~: all BGP files after 15:40 UTC on that day
+- ~end_ts=1633362022~: all BGP files before 16:00 UTC on that day
+- ~data_type=update~: only return updates files
+- ~page_size=5~: return 5 items per page
+- ~page=1~: return the 1st page (pages starting from 1)
+
+* API Spec
+
 * Data Sources
 :PROPERTIES:
 :ID:       6c5be109-0165-4b04-9983-bbb33d5ab515
 :END:
 
-Broker backend currently support two data collection projects: RouteViews and
-RIPE RIS. Specifically, we have designed tailored data collection procedures to
+Broker backend currently support two data collection projects: [[http://archive.routeviews.org][RouteViews]] and
+[[https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/ris-raw-data][RIPE RIS]]. Specifically, we have designed tailored data collection procedures to
 efficiently crawl the data publication sites from the two projects and collect
 basic information of the published BGP MRT files.
 
@@ -41,8 +111,9 @@ The information we currently collect for each data file includes:
 
 Note that the data dump frequencies for RouteViews and RIPE RIS are different.
 Here is a table summarizing their frequencies:
+
 |------------+--------------------+----------------------|
-| project    | update frequency   | table dump frequency |
+| Project    | Update frequency   | Table dump frequency |
 |------------+--------------------+----------------------|
 | RouteViews | one per 15 minutes | one per 2 hours      |
 | RIPE RIS   | one per 5 minutes  | one per 8 hours      |
@@ -50,30 +121,6 @@ Here is a table summarizing their frequencies:
 
 In essence, you would see more frequent BGP updates dumps from RIPE RIS and more
 frequent full table dumps from RouteViews.
-
-* Components
-:PROPERTIES:
-:ID:       4dcedfe5-9844-4fb2-a5d0-42cac1d1eb50
-:END:
-
-** broker-updater
-
-1. user specify the collectors to gather information from
-2. user specify scrape mode: ~scrape-all~, or ~scrape-latest~
-   - ~scrape-all~: goes back to the beginning of time and gather everything form the collectors
-   - ~scrape-latest~: only scrapes the past and current months' data, enough to update the database for latest information
-3. broker spawn tasks for scraping months of data for each collector
-4. broker backend handles saving scraped data
-
-** broker-api
-
-The Broker API provides a REST interface for querying data.  The documentation
-is hosted at: https://docs.broker.bgpkit.com/
-
-** Rust API
-
-We also provide native Rust API to access the broker data in a more ergonomic
-way. Please visit our [[https://github.com/bgpkit/bgpkit-broker][Rust API repository]] to learn more.
 
 * Deployment
 :PROPERTIES:
@@ -84,7 +131,9 @@ Here is a step-by-step guide for deploying BGPKIT Broker with Docker
 
 1. Checkout the repository
 2. cd into ~deployment~ directory
-3. run ~docker-compose up -d~
+3. *important*: change database credentials in [[file:deployment/docker-compose.yml][docker-compose.yml]], [[file:deployment/dbinit.sh][dbinit.sh]], and
+   [[file:deployment/update.cron][update.cron]].
+4. run ~docker-compose up -d~
 
 The initial database bootstrap phase would take about 3-5 minutes depending on
 your deployment environment.
