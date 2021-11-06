@@ -1,0 +1,119 @@
+#+TITLE: BGPKIT Broker Backend
+
+BGPKIT Broker Backend is the backend API and data collection software for the
+[[https://bgpkit.com/broker][BGPKIT Broker project]].
+
+- [[id:279d0e5a-8de8-4906-9b45-71669a00469c][BGPKIT Broker Primer]]
+- [[id:6c5be109-0165-4b04-9983-bbb33d5ab515][Data Sources]]
+- [[id:4dcedfe5-9844-4fb2-a5d0-42cac1d1eb50][Components]]
+- [[id:f400ff62-9b19-4416-ae3d-a358e71b937e][Deployment]]
+- [[id:d66943c0-30e1-40df-a02d-063806ca8d7d][LICENSE]]
+
+* BGPKIT Broker Primer
+:PROPERTIES:
+:ID:       279d0e5a-8de8-4906-9b45-71669a00469c
+:END:
+
+At a high level, the BGPKIT Broker is a REST API service that provides search
+capability for BGP MRT archive files from various data collection projects. An
+user can search for matching archive files with simple REST API calls.
+
+* Data Sources
+:PROPERTIES:
+:ID:       6c5be109-0165-4b04-9983-bbb33d5ab515
+:END:
+
+Broker backend currently support two data collection projects: RouteViews and
+RIPE RIS. Specifically, we have designed tailored data collection procedures to
+efficiently crawl the data publication sites from the two projects and collect
+basic information of the published BGP MRT files.
+
+The information we currently collect for each data file includes:
+- data type: either BGP updates files, or BGP table dump files.
+- timestamp: the time of the beginning of the data dump, usually aligns on the
+  full five-minute marks.
+- url: the URL for the downloadable data file.
+- collector ID: the ID of the data collector where that data comes from.
+
+Note that the data dump frequencies for RouteViews and RIPE RIS are different.
+Here is a table summarizing their frequencies:
+|------------+--------------------+----------------------|
+| project    | update frequency   | table dump frequency |
+|------------+--------------------+----------------------|
+| RouteViews | one per 15 minutes | one per 2 hours      |
+| RIPE RIS   | one per 5 minutes  | one per 8 hours      |
+|------------+--------------------+----------------------|
+
+In essence, you would see more frequent BGP updates dumps from RIPE RIS and more
+frequent full table dumps from RouteViews.
+
+* Components
+:PROPERTIES:
+:ID:       4dcedfe5-9844-4fb2-a5d0-42cac1d1eb50
+:END:
+
+** broker-updater
+
+1. user specify the collectors to gather information from
+2. user specify scrape mode: ~scrape-all~, or ~scrape-latest~
+    - ~scrape-all~: goes back to the beginning of time and gather everything form the collectors
+    - ~scrape-latest~: only scrapes the past and current months' data, enough to update the database for latest information
+3. broker spawn tasks for scraping months of data for each collector
+4. broker backend handles saving scraped data
+
+** broker-api
+
+The Broker API provides a REST interface for querying data.
+The documentation is hosted at: https://docs.broker.bgpkit.com/
+
+** Rust API
+
+We also provide native Rust API to access the broker data in a more ergonomic
+way. Please visit our [[https://github.com/bgpkit/bgpkit-broker][Rust API repository]] to learn more.
+
+* Deployment
+:PROPERTIES:
+:ID:       f400ff62-9b19-4416-ae3d-a358e71b937e
+:END:
+
+Here is a step-by-step guide for deploying BGPKIT Broker with Docker
+
+1. Checkout the repository
+2. cd into ~deployment~ directory
+3. run ~docker-compose up -d~
+
+The initial database bootstrap phase would take about 3-5 minutes depending on your deployment environment.
+
+After the initial bootstrap phase is done, the API service should be up and
+running, currently hosted at port ~8080~. You can modify the port in
+~docker-compose.yml~ file. In the mean time, a cronjob service also started,
+crawling collectors for recent data every 5 minutes. The frequency can be
+configured in the ~update.cron~. It is not recommended to go more frequent than
+one crawl per 5 minutes.
+
+You can check out if the API is running by running:
+#+begin_src bash
+curl localhost:8080/v1/meta/collectors
+#+end_src
+It should give you all the currently indexed data collectors.
+
+* LICENSE
+:PROPERTIES:
+:ID:       d66943c0-30e1-40df-a02d-063806ca8d7d
+:END:
+See [[file:LICENSE][LICENSE]] file for details.
+
+In summary, the BGPKIT Broker backend is free for research and education usages.
+If your institute is using our project and you feel like make us happy 🥰, please send us an email and tell us who you are and what kind of projects you are using our projects for contact@bgpkit.com.
+
+For commercial usage or creating public access points, please contact us at contact@bgpkit.com.
+
+* Built with ❤️ by BGPKIT Team
+
+BGPKIT is a small-team start-up that focus on building the best tooling for BGP
+data in Rust. We have 10 years of experience working with BGP data and believe
+that our work can enable our users to start keeping tracks of BGP data on their
+own turf. Learn more about what services we provide at https://bgpkit.com.
+
+#+attr_html: :width 200px
+[[https://spaces.bgpkit.org/assets/logos/wide-solid.png]]
