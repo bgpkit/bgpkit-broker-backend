@@ -8,13 +8,12 @@ equipment, and it **free for researchers and educators**! See more in [[#deploym
 and [[#license][LICENSE]] sections.
 
 * Table of Content                                                      :TOC:
-- [[#bgpkit-broker-primer][BGPKIT Broker Primer]]
-- [[#api-spec][API Spec]]
+- [[#bgpkit-broker-api][BGPKIT Broker API]]
 - [[#data-sources][Data Sources]]
 - [[#deployment][Deployment]]
 - [[#license][LICENSE]]
 
-* BGPKIT Broker Primer
+* BGPKIT Broker API
 :PROPERTIES:
 :ID:       279d0e5a-8de8-4906-9b45-71669a00469c
 :END:
@@ -25,7 +24,8 @@ user can search for matching archive files with simple REST API calls.
 
 For example, we want to learn about exactly what BGP updates were involved that
 caused Facebook’s outage for multiple hours on Oct. 4th, 2021. We can use the
-following REST call to the BGPKIT Broker API:
+following REST call to the BGPKIT Broker API to gather the full list of data
+files that may contain the relevant updates for the event:
 
 #+begin_src restclient :exports both
 GET https://api.broker.bgpkit.com/v1/search?start_ts=1633362000&end_ts=1633363200&data_type=update&page_size=5&page=1
@@ -90,7 +90,7 @@ Here is a break-down of the call parameters:
 - ~page_size=5~: return 5 items per page
 - ~page=1~: return the 1st page (pages starting from 1)
 
-* API Spec
+For more examples and API spec, please checkout our [[https://docs.broker.bgpkit.com][documentation site]].
 
 * Data Sources
 :PROPERTIES:
