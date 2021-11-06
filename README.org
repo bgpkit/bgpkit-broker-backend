@@ -1,7 +1,7 @@
 #+TITLE: BGPKIT Broker Backend
 
-BGPKIT Broker Backend is the backend API and data collection software for the
-[[https://bgpkit.com/broker][BGPKIT Broker project]].
+BGPKIT Broker Backend is the backend API and data collection software for
+the [[https://bgpkit.com/broker][BGPKIT Broker project]].
 
 * Table of Content                                                      :TOC:
 - [[#bgpkit-broker-primer][BGPKIT Broker Primer]]
@@ -12,7 +12,6 @@ BGPKIT Broker Backend is the backend API and data collection software for the
   - [[#rust-api][Rust API]]
 - [[#deployment][Deployment]]
 - [[#license][LICENSE]]
-- [[#built-with-️-by-bgpkit-team][Built with ❤️ by BGPKIT Team]]
 
 * BGPKIT Broker Primer
 :PROPERTIES:
@@ -61,15 +60,15 @@ frequent full table dumps from RouteViews.
 
 1. user specify the collectors to gather information from
 2. user specify scrape mode: ~scrape-all~, or ~scrape-latest~
-    - ~scrape-all~: goes back to the beginning of time and gather everything form the collectors
-    - ~scrape-latest~: only scrapes the past and current months' data, enough to update the database for latest information
+   - ~scrape-all~: goes back to the beginning of time and gather everything form the collectors
+   - ~scrape-latest~: only scrapes the past and current months' data, enough to update the database for latest information
 3. broker spawn tasks for scraping months of data for each collector
 4. broker backend handles saving scraped data
 
 ** broker-api
 
-The Broker API provides a REST interface for querying data.
-The documentation is hosted at: https://docs.broker.bgpkit.com/
+The Broker API provides a REST interface for querying data.  The documentation
+is hosted at: https://docs.broker.bgpkit.com/
 
 ** Rust API
 
@@ -87,7 +86,8 @@ Here is a step-by-step guide for deploying BGPKIT Broker with Docker
 2. cd into ~deployment~ directory
 3. run ~docker-compose up -d~
 
-The initial database bootstrap phase would take about 3-5 minutes depending on your deployment environment.
+The initial database bootstrap phase would take about 3-5 minutes depending on
+your deployment environment.
 
 After the initial bootstrap phase is done, the API service should be up and
 running, currently hosted at port ~8080~. You can modify the port in
@@ -98,22 +98,25 @@ one crawl per 5 minutes.
 
 You can check out if the API is running by running:
 #+begin_src bash
-curl localhost:8080/v1/meta/collectors
-#+end_src
-It should give you all the currently indexed data collectors.
+curl localhost:8080/v1/meta/collectors #+end_src It should give you all the
+currently indexed data collectors.
 
 * LICENSE
 :PROPERTIES:
 :ID:       d66943c0-30e1-40df-a02d-063806ca8d7d
 :END:
+
 See [[file:LICENSE][LICENSE]] file for details.
 
 In summary, the BGPKIT Broker backend is free for research and education usages.
-If your institute is using our project and you feel like make us happy 🥰, please send us an email and tell us who you are and what kind of projects you are using our projects for contact@bgpkit.com.
+If your institute is using our project and you feel like make us happy 🥰,
+please send us an email and tell us who you are and what kind of projects you
+are using our projects for contact@bgpkit.com.
 
-For commercial usage or creating public access points, please contact us at contact@bgpkit.com.
+For commercial usage or creating public access points, please contact us at
+contact@bgpkit.com.
 
-* Built with ❤️ by BGPKIT Team
+* Built with ❤️ by BGPKIT Team                                      :noexport:
 
 BGPKIT is a small-team start-up that focus on building the best tooling for BGP
 data in Rust. We have 10 years of experience working with BGP data and believe
