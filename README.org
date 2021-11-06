@@ -3,11 +3,16 @@
 BGPKIT Broker Backend is the backend API and data collection software for the
 [[https://bgpkit.com/broker][BGPKIT Broker project]].
 
-- [[id:279d0e5a-8de8-4906-9b45-71669a00469c][BGPKIT Broker Primer]]
-- [[id:6c5be109-0165-4b04-9983-bbb33d5ab515][Data Sources]]
-- [[id:4dcedfe5-9844-4fb2-a5d0-42cac1d1eb50][Components]]
-- [[id:f400ff62-9b19-4416-ae3d-a358e71b937e][Deployment]]
-- [[id:d66943c0-30e1-40df-a02d-063806ca8d7d][LICENSE]]
+* Table of Content                                                      :TOC:
+- [[#bgpkit-broker-primer][BGPKIT Broker Primer]]
+- [[#data-sources][Data Sources]]
+- [[#components][Components]]
+  - [[#broker-updater][broker-updater]]
+  - [[#broker-api][broker-api]]
+  - [[#rust-api][Rust API]]
+- [[#deployment][Deployment]]
+- [[#license][LICENSE]]
+- [[#built-with-️-by-bgpkit-team][Built with ❤️ by BGPKIT Team]]
 
 * BGPKIT Broker Primer
 :PROPERTIES:
@@ -115,5 +120,4 @@ data in Rust. We have 10 years of experience working with BGP data and believe
 that our work can enable our users to start keeping tracks of BGP data on their
 own turf. Learn more about what services we provide at https://bgpkit.com.
 
-#+attr_html: :width 200px
-[[https://spaces.bgpkit.org/assets/logos/wide-solid.png]]
+[[https://spaces.bgpkit.org/assets/logos/wide-solid-200px.png]]
