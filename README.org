@@ -97,9 +97,12 @@ configured in the ~update.cron~. It is not recommended to go more frequent than
 one crawl per 5 minutes.
 
 You can check out if the API is running by running:
+
 #+begin_src bash
-curl localhost:8080/v1/meta/collectors #+end_src It should give you all the
-currently indexed data collectors.
+curl localhost:8080/v1/meta/collectors
+#+end_src
+
+It should give you all the currently indexed data collectors.
 
 * LICENSE
 :PROPERTIES:
