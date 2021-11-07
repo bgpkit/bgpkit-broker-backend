@@ -10,10 +10,7 @@ services:
     container_name: postgres
     image: bitnami/postgresql:14
     restart: always
-    environment:
-      POSTGRES_PASSWORD: broker
-      POSTGRES_USER: broker_user
-      POSTGRES_DB: broker
+    env_file: db_cred.env
     volumes:
       - ./dbinit.sh:/docker-entrypoint-initdb.d/dbinit.sh
       - dbdata:/bitnami/postgresql
@@ -29,8 +26,7 @@ services:
       dockerfile: deployment/Dockerfile
       context: ..
     restart: always
-    environment:
-      DATABASE_URL: postgres://broker_user:broker@postgres/broker
+    env_file: db_cred.env
     depends_on:
       - postgres
     networks:
