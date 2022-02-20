@@ -253,6 +253,10 @@
           "url": "http://archive.routeviews.org/route-views.bknix/bgpdata"
         },
         {
+          "id":"route-views.ny",
+          "url": "http://archive.routeviews.org/route-views.ny/bgpdata"
+        },
+        {
           "id":"route-views.uaeix",
           "url": "http://archive.routeviews.org/route-views.uaeix/bgpdata"
         }
