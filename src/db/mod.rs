@@ -2,7 +2,7 @@ pub mod schema;
 
 use std::collections::HashSet;
 use std::iter::FromIterator;
-use chrono::{NaiveDateTime, ParseResult};
+use chrono::NaiveDateTime;
 use crate::models::*;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
