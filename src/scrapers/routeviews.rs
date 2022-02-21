@@ -36,8 +36,8 @@ impl RouteViewsScraper {
             let updates_url = format!("{}/{}/UPDATES", collector.url, month);
 
             [
-                self.scrape_items(ribs_url, format!("{}-{}", month, "rib"), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db, kafka, verify),
-                self.scrape_items(updates_url, format!("{}-{}", month, "update"), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db, kafka, verify)
+                self.scrape_items(ribs_url, month.to_string(), "rib".to_string(), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db, kafka, verify),
+                self.scrape_items(updates_url, month.to_string(), "update".to_string(), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db, kafka, verify)
             ]
         }).collect();
 
@@ -45,10 +45,10 @@ impl RouteViewsScraper {
         Ok( () )
     }
 
-    async fn scrape_items(&self, url: String, month: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>, verify: bool) -> Result<(), ScrapeError>{
-        info!("scraping data for {} ... ", &month);
+    async fn scrape_items(&self, url: String, month: String, data_type_str: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>, verify: bool) -> Result<(), ScrapeError>{
+        info!("scraping data for {}-{} ... ", &month, &data_type_str);
         let body = reqwest::get(&url).await?.text().await?;
-        info!("     download for {} finished ", &month);
+        info!("     download for {}-{} finished ", &month, &data_type_str);
 
         let collector_clone = collector_id.clone();
 
@@ -70,7 +70,7 @@ impl RouteViewsScraper {
         }).await.unwrap();
 
         if let Some(conn) = db {
-            info!("   insert to db for {}...", &month);
+            info!("   insert to db for {}-{}...", &month, &data_type_str);
             let new_items = if verify{
                 let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
                 let new_urls = data_items.iter().filter(|x| !current_month_items.contains(&x.url))

@@ -2,7 +2,7 @@ pub mod schema;
 
 use std::collections::HashSet;
 use std::iter::FromIterator;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, ParseResult};
 use crate::models::*;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
@@ -34,7 +34,12 @@ impl DbConnection {
     pub fn get_urls_in_month(&self, collector: &str, month_str: &str) -> HashSet<String> {
         use schema::items::dsl::*;
 
-        let start_ts = NaiveDateTime::parse_from_str(format!("{}.01T00:00:00", month_str).as_str(), "%Y.%m.%dT%H:%M:%S").unwrap();
+        let start_ts = match NaiveDateTime::parse_from_str(format!("{}.01T00:00:00", month_str).as_str(), "%Y.%m.%dT%H:%M:%S"){
+            Ok(t) => {t}
+            Err(e) => {
+                panic!("parsing {} failed: {}", month_str, e.to_string())
+            }
+        };
         let end_ts = start_ts + chrono::Duration::days(31);
         HashSet::from_iter(items
             .filter(collector_id.eq(collector))
