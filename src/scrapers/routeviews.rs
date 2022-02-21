@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+use std::iter::FromIterator;
 use crate::scrapers::*;
 use log::info;
 use futures::future::join_all;
@@ -10,7 +12,7 @@ impl RouteViewsScraper {
     /// `scrape` implementation for RouteViews.
     ///
     /// Example of RouteViews2: http://archive.routeviews.org/bgpdata/
-    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError> {
+    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>, verify: bool) -> Result<(), ScrapeError> {
         info!("scraping RouteViews collector {}; only latest month = {}", collector.id, &latest);
 
         let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
@@ -34,8 +36,8 @@ impl RouteViewsScraper {
             let updates_url = format!("{}/{}/UPDATES", collector.url, month);
 
             [
-                self.scrape_items(ribs_url, format!("{}-{}", month, "rib"), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db, kafka),
-                self.scrape_items(updates_url, format!("{}-{}", month, "update"), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db, kafka)
+                self.scrape_items(ribs_url, format!("{}-{}", month, "rib"), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db, kafka, verify),
+                self.scrape_items(updates_url, format!("{}-{}", month, "update"), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db, kafka, verify)
             ]
         }).collect();
 
@@ -43,10 +45,12 @@ impl RouteViewsScraper {
         Ok( () )
     }
 
-    async fn scrape_items(&self, url: String, month: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError>{
+    async fn scrape_items(&self, url: String, month: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>, verify: bool) -> Result<(), ScrapeError>{
         info!("scraping data for {} ... ", &month);
         let body = reqwest::get(&url).await?.text().await?;
         info!("     download for {} finished ", &month);
+
+        let collector_clone = collector_id.clone();
 
         let data_items: Vec<Item> =
         tokio::task::spawn_blocking(move || {
@@ -67,7 +71,20 @@ impl RouteViewsScraper {
 
         if let Some(conn) = db {
             info!("   insert to db for {}...", &month);
-            let inserted = conn.insert_items(&data_items);
+            let new_items = if verify{
+                let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
+                let new_urls = data_items.iter().filter(|x| !current_month_items.contains(&x.url))
+                    .map(|x| x.url.clone())
+                    .collect::<Vec<String>>();
+                let verified_urls: HashSet<String> = HashSet::from_iter(verify_urls(&new_urls).await.into_iter());
+                info!("    total {} new urls, {} verified working", new_urls.len(), verified_urls.len());
+                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url) && verified_urls.contains(&x.url))
+                    .collect::<Vec<Item>>()
+            } else {
+                data_items
+            };
+
+            let inserted = conn.insert_items(&new_items);
             if let Some(producer) = kafka {
                 if inserted.len()>0 {
                     info!("   announcing new items to kafka ...");
@@ -95,6 +112,6 @@ mod tests {
             url: "http://archive.routeviews.org/bgpdata".to_string()
         };
         let rv_scraper = RouteViewsScraper{};
-        let _ = rv_scraper.scrape(&rv_collector, true, None, None).await;
+        let _ = rv_scraper.scrape(&rv_collector, true, None, None, false).await;
     }
 }
