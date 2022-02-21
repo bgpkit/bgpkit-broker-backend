@@ -25,7 +25,7 @@ impl DataType {
     }
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Insertable, Serialize, Deserialize, Eq, PartialEq)]
 #[table_name="items"]
 pub struct Item {
     pub collector_id: String,

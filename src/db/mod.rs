@@ -1,5 +1,8 @@
 pub mod schema;
 
+use std::collections::HashSet;
+use std::iter::FromIterator;
+use chrono::NaiveDateTime;
 use crate::models::*;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
@@ -28,6 +31,18 @@ impl DbConnection {
             .execute(&self.conn).unwrap();
     }
 
+    pub fn get_urls_in_month(&self, collector: &str, month_str: &str) -> HashSet<String> {
+        use schema::items::dsl::*;
+
+        let start_ts = NaiveDateTime::parse_from_str(format!("{}.01T00:00:00", month_str).as_str(), "%Y.%m.%dT%H:%M:%S").unwrap();
+        let end_ts = start_ts + chrono::Duration::days(31);
+        HashSet::from_iter(items
+            .filter(collector_id.eq(collector))
+            .filter(timestamp.ge(start_ts.timestamp()))
+            .filter(timestamp.le(end_ts.timestamp()))
+            .select(url).load::<String>(&self.conn).unwrap().into_iter())
+    }
+
     pub fn insert_items(&self, entries: &Vec<Item>) -> Vec<Item> {
         use schema::items::dsl::*;
         let chunks = entries.chunks(CHUNK_SIZE/4);
@@ -49,6 +64,7 @@ impl DbConnection {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
     use super::*;
 
     #[test]
@@ -76,4 +92,14 @@ mod tests {
         conn.insert_items(&entries);
     }
 
+    #[test]
+    fn test_get_items() {
+        let _ = dotenv::dotenv();
+        let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let conn = DbConnection::new(db_url.as_str());
+        let items = conn.get_urls_in_month("rrc25", "2022.02");
+        for item in items {
+            println!("{}", item)
+        }
+    }
 }

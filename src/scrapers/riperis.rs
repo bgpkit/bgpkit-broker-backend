@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+use std::iter::FromIterator;
 use crate::scrapers::*;
 use log::info;
 use futures::future::join_all;
@@ -8,7 +10,7 @@ pub struct RipeRisScraper {}
 
 impl RipeRisScraper {
     /// `scrape` implementation for RIPE RIS.
-    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError> {
+    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>, verify: bool) -> Result<(), ScrapeError> {
         info!("scraping RIPE RIS collector {}; only latest month = {}", collector.id, &latest);
 
         let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
@@ -37,7 +39,8 @@ impl RipeRisScraper {
                 rib_link_pattern.clone(),
                 collector.id.clone(),
                 db,
-                kafka
+                kafka,
+                verify
             ))
         }
 
@@ -45,10 +48,12 @@ impl RipeRisScraper {
         Ok( () )
     }
 
-    async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError>{
+    async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>, verify: bool) -> Result<(), ScrapeError>{
         info!("scraping data for {} ...", &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("   download   for {} finished", &month);
+
+        let collector_clone = collector_id.clone();
 
         let data_items =
         tokio::task::spawn_blocking(move || {
@@ -86,7 +91,19 @@ impl RipeRisScraper {
 
         if let Some(conn) = db {
             info!("   insert to db for {}...", &month);
-            let inserted = conn.insert_items(&data_items);
+            let new_items = if verify{
+                let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
+                let new_urls = data_items.iter().filter(|x| !current_month_items.contains(&x.url))
+                    .map(|x| x.url.clone())
+                    .collect::<Vec<String>>();
+                let verified_urls: HashSet<String> = HashSet::from_iter(verify_urls(&new_urls).await.into_iter());
+                info!("    total {} new urls, {} verified working", new_urls.len(), verified_urls.len());
+                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url) && verified_urls.contains(&x.url))
+                    .collect::<Vec<Item>>()
+            } else {
+                data_items
+            };
+            let inserted = conn.insert_items(&new_items);
             if let Some(producer) = kafka {
                 if inserted.len()>0 {
                     info!("   announcing new items to kafka ...");
@@ -102,18 +119,28 @@ impl RipeRisScraper {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
     use super::*;
     use env_logger;
 
     #[tokio::test]
     async fn test_routeviews() {
+    }
+
+    #[tokio::test]
+    async fn test_routeviews_with_db() {
         env_logger::init();
+        let _ = dotenv::dotenv();
+        let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let conn = DbConnection::new(db_url.as_str());
+
         let ris_collector = Collector{
             id: "rrc00".to_string(),
             project: "riperis".to_string(),
             url: "http://data.ris.ripe.net/rrc00".to_string()
         };
         let ris_scraper = RipeRisScraper{};
-        ris_scraper.scrape(&ris_collector, true, None, None).await.unwrap();
+        ris_scraper.scrape(&ris_collector, true, Some(&conn), None, true).await.unwrap();
     }
+
 }

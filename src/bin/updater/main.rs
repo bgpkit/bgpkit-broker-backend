@@ -98,10 +98,10 @@ fn main () {
         collectors.iter().for_each(|c| {
             match c.project.as_str() {
                 "routeviews" => {
-                    rv_futures.push(rv_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer));
+                    rv_futures.push(rv_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer, opts.latest.clone()));
                 }
                 "riperis" => {
-                    ris_futures.push(ris_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer));
+                    ris_futures.push(ris_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer, opts.latest.clone()));
                 }
                 _ => {panic!("")}
             }
