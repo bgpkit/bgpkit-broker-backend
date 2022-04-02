@@ -43,8 +43,8 @@ impl DbConnection {
         let end_ts = start_ts + chrono::Duration::days(31);
         HashSet::from_iter(items
             .filter(collector_id.eq(collector))
-            .filter(timestamp.ge(start_ts.timestamp()))
-            .filter(timestamp.le(end_ts.timestamp()))
+            .filter(ts_start.ge(start_ts.timestamp()))
+            .filter(ts_start.le(end_ts.timestamp()))
             .select(url).load::<String>(&self.conn).unwrap().into_iter())
     }
 
@@ -86,10 +86,13 @@ mod tests {
         info!("creating entries...");
         for t in 1..1_000_000 {
             entries.push(Item{
+                ts_start: t,
+                ts_end: t+60*5,
                 collector_id: "rrc00".to_string(),
-                timestamp: t,
                 data_type: "rib".to_string(),
-                url: "testurl".to_string()
+                url: "testurl".to_string(),
+                file_size: 0,
+                file_info: Default::default()
             })
         };
         info!("creating entries... done");

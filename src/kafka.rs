@@ -32,7 +32,7 @@ impl KafkaProducer {
                 .send(
                     FutureRecord::to(&self.topic)
                         .payload(&payload)
-                        .key(&item.timestamp.to_string())
+                        .key(&item.ts_start.to_string())
                         .headers(OwnedHeaders::new().add("header_key", "header_value")),
                     Duration::from_secs(0),
                 )
@@ -107,16 +107,22 @@ mod tests {
         env_logger::init();
         let items = vec![
             Item {
+                ts_start: 0,
+                ts_end: 0,
                 collector_id: "rro00".to_string(),
-                timestamp: 100,
                 data_type: "rib".to_string(),
-                url: "http://testurl.com".to_string()
+                url: "http://testurl.com".to_string(),
+                file_size: 0,
+                file_info: Default::default()
             },
             Item {
+                ts_start: 0,
+                ts_end: 0,
                 collector_id: "rro00".to_string(),
-                timestamp: 200,
                 data_type: "rib".to_string(),
-                url: "http://testurl.com".to_string()
+                url: "http://testurl.com".to_string(),
+                file_size: 0,
+                file_info: Default::default()
             },
         ];
 

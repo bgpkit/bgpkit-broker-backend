@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-use std::iter::FromIterator;
 use crate::scrapers::*;
 use log::info;
 use futures::future::join_all;
@@ -65,10 +63,13 @@ impl RipeRisScraper {
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap().timestamp();
                 data_items.push(
                     Item {
+                        ts_start: unix_time,
+                        ts_end: unix_time + 5*60,
                         url: url.clone(),
+                        file_size: 0,
                         collector_id: collector_id.clone(),
-                        timestamp: unix_time,
                         data_type: "update".to_string(),
+                        file_info: Default::default()
                     }
                 );
             });
@@ -80,10 +81,13 @@ impl RipeRisScraper {
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap().timestamp();
                 data_items.push(
                     Item {
+                        ts_start: unix_time,
+                        ts_end: unix_time,
                         url: url.clone(),
+                        file_size: 0,
                         collector_id: collector_id.clone(),
-                        timestamp: unix_time,
                         data_type: "rib".to_string(),
+                        file_info: Default::default()
                     });
             });
             data_items
@@ -96,9 +100,31 @@ impl RipeRisScraper {
                 let new_urls = data_items.iter().filter(|x| !current_month_items.contains(&x.url))
                     .map(|x| x.url.clone())
                     .collect::<Vec<String>>();
-                let verified_urls: HashSet<String> = HashSet::from_iter(verify_urls(&new_urls).await.into_iter());
-                info!("    total {} new urls, {} verified working", new_urls.len(), verified_urls.len());
-                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url) && verified_urls.contains(&x.url))
+                let file_sizes = verify_urls(&new_urls).await;
+                let good_count = file_sizes.values().filter(|x| **x>0).count();
+                info!("    total {} new urls, {} verified working", new_urls.len(), good_count);
+                data_items.into_iter().filter_map(|x| {
+                    if current_month_items.contains(&x.url) {
+                        return None
+                    }
+                    let file_size = file_sizes.get(&x.url).unwrap().to_owned();
+                    if file_size>0 {
+                        Some(
+                            Item {
+                                ts_start: x.ts_start,
+                                ts_end: x.ts_end,
+                                file_size: file_size as i64,
+                                collector_id: x.collector_id,
+                                data_type: x.data_type,
+                                file_info: x.file_info,
+                                url: x.url,
+                            }
+                        )
+                    } else {
+                        None
+                    }
+                }
+                )
                     .collect::<Vec<Item>>()
             } else {
                 data_items

@@ -1,6 +1,7 @@
 pub mod routeviews;
 pub mod riperis;
 
+use std::collections::HashMap;
 use crate::models::*;
 use crate::errors::*;
 use regex::Regex;
@@ -11,24 +12,22 @@ pub use routeviews::RouteViewsScraper;
 pub use riperis::RipeRisScraper;
 use crate::db::DbConnection;
 
-async fn verify_urls(urls: &Vec<String>) -> Vec<String> {
+async fn verify_urls(urls: &Vec<String>) -> HashMap<String, u64> {
     let mut futures = vec![];
     for url in urls{
         futures.push(verify_url(url.as_str())
         );
     }
     let res = join_all(futures).await;
-    let mut verified = vec![];
-    for (url, ready) in res {
-        if ready {
-            verified.push(url)
-        }
+    let mut verified = HashMap::new();
+    for (url, size) in res {
+        verified.insert(url, size);
     }
 
     return verified
 }
 
-async fn verify_url(url: &str) -> (String, bool) {
+async fn verify_url(url: &str) -> (String, u64) {
     let url_clone = url.to_string();
     let res = match reqwest::Client::new()
         .get(url)
@@ -36,10 +35,10 @@ async fn verify_url(url: &str) -> (String, bool) {
         .await
         .or(Err(format!("{}", &url))) {
         Ok(r) => {r}
-        Err(_) => {return (url_clone, false)}
+        Err(_) => {return (url_clone, 0)}
     };
     if !res.status().is_success() {
-        return (url_clone, false)
+        return (url_clone, 0)
     }
     let total_size = match res
         .content_length(){
@@ -48,9 +47,9 @@ async fn verify_url(url: &str) -> (String, bool) {
     };
 
     return if total_size > 0 {
-        (url_clone, true)
+        (url_clone, total_size)
     } else {
-        (url_clone, false)
+        (url_clone, total_size)
     }
 }
 

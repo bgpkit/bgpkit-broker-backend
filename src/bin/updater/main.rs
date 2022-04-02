@@ -88,6 +88,8 @@ fn main () {
         }
     };
 
+    let verify = opts.latest.clone();
+
     rt.block_on(async {
         let rv_scraper = RouteViewsScraper{};
         let ris_scraper = RipeRisScraper{};
@@ -98,10 +100,10 @@ fn main () {
         collectors.iter().for_each(|c| {
             match c.project.as_str() {
                 "routeviews" => {
-                    rv_futures.push(rv_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer, opts.latest.clone()));
+                    rv_futures.push(rv_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer, verify));
                 }
                 "riperis" => {
-                    ris_futures.push(ris_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer, opts.latest.clone()));
+                    ris_futures.push(ris_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer, verify));
                 }
                 _ => {panic!("")}
             }

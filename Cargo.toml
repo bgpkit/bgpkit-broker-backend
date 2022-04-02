@@ -33,7 +33,7 @@ serde_json = {version = "1"}
 futures = "0.3"
 
 # database dependency
-diesel = {version="1.4.4", features=["postgres", "r2d2"]}
+diesel = {version="1.4.4", features=["postgres", "r2d2", "serde_json"]}
 dotenv = "0.15.0"
 
 # kafka

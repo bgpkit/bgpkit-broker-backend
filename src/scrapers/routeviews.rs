@@ -1,7 +1,5 @@
-use std::collections::HashSet;
-use std::iter::FromIterator;
 use crate::scrapers::*;
-use log::info;
+use log::{info, warn};
 use futures::future::join_all;
 use crate::kafka::KafkaProducer;
 
@@ -60,11 +58,19 @@ impl RouteViewsScraper {
                 let updates_link_pattern: Regex = Regex::new(r#".*(........\.....)\.bz2.*"#).unwrap();
                 let time_str = updates_link_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap().timestamp();
+                let interval = match data_type.as_str(){
+                    "rib" => 0,
+                    "update" => 15*60,
+                    _ => 0
+                };
                 Item {
-                    url,
+                    ts_start: unix_time,
+                    ts_end: unix_time+interval,
+                    file_size: 0,
                     collector_id: collector_id.clone(),
-                    timestamp: unix_time,
                     data_type: data_type.clone(),
+                    file_info: Default::default(),
+                    url,
                 }
             }).collect()
         }).await.unwrap();
@@ -76,9 +82,32 @@ impl RouteViewsScraper {
                 let new_urls = data_items.iter().filter(|x| !current_month_items.contains(&x.url))
                     .map(|x| x.url.clone())
                     .collect::<Vec<String>>();
-                let verified_urls: HashSet<String> = HashSet::from_iter(verify_urls(&new_urls).await.into_iter());
-                info!("    total {} new urls, {} verified working", new_urls.len(), verified_urls.len());
-                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url) && verified_urls.contains(&x.url))
+                let file_sizes = verify_urls(&new_urls).await;
+                let good_count = file_sizes.values().filter(|x| **x>0).count();
+                info!("    total {} new urls, {} verified working", new_urls.len(), good_count);
+                data_items.into_iter().filter_map(|x| {
+                    if current_month_items.contains(&x.url) {
+                        return None
+                    }
+                    let file_size = file_sizes.get(&x.url).unwrap().to_owned();
+                    if file_size>0 {
+                        Some(
+                            Item {
+                                ts_start: x.ts_start,
+                                ts_end: x.ts_end,
+                                file_size: file_size as i64,
+                                collector_id: x.collector_id,
+                                data_type: x.data_type,
+                                file_info: x.file_info,
+                                url: x.url,
+                            }
+                        )
+                    } else {
+                        warn!("    file {} is empty", &x.url);
+                        None
+                    }
+                }
+                )
                     .collect::<Vec<Item>>()
             } else {
                 data_items

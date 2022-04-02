@@ -18,11 +18,14 @@ table! {
 }
 
 table! {
-    items (timestamp, collector_id, data_type) {
+    items (url) {
+        ts_start -> Int8,
+        ts_end -> Int8,
         collector_id -> Text,
-        timestamp -> Int8,
         data_type -> Text,
         url -> Text,
+        file_size -> Int8,
+        file_info -> Jsonb,
     }
 }
 
