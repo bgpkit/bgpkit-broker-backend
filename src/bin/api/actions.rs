@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, TextExpressionMethods, RunQueryDsl};
 use diesel::dsl::count_star;
 use diesel::result::Error;
+use chrono::NaiveDateTime;
 use bgpkit_broker_backend::models::{Collector, Item, UpdateTime};
 use crate::pagination::LoadPaginated;
 
@@ -14,8 +15,8 @@ fn get_default_page_size() -> Option<i64> { Some(DEFAULT_PAGE_SIZE) }
 
 #[derive(Deserialize, Debug)]
 pub struct Info {
-    start_ts: Option<i64>,
-    end_ts: Option<i64>,
+    start_ts: Option<String>,
+    end_ts: Option<String>,
     collector: Option<String>,
     project: Option<String>,
     data_type: Option<String>,
@@ -48,11 +49,33 @@ pub fn search_items(conn: &PgConnection, info: Info) -> Result<ItemsResult, Erro
     let mut query = items::table.into_boxed();
 
     // timestamps filter
-    if let Some(start) = info.start_ts {
-        query = query.filter(items::ts_end.gt(start));
+    if let Some(start_str) = info.start_ts {
+        match start_str.parse::<i64>(){
+            Ok(ts) => {
+                query = query.filter(items::ts_end.gt(ts));
+            },
+            Err(_) => {
+                match NaiveDateTime::parse_from_str(start_str.as_str(), "%Y-%m-%dT%H:%M:%S") {
+                    Ok(ts) => {
+                        dbg!(&ts.timestamp());
+                        query = query.filter(items::ts_end.gt(ts.timestamp()));
+                    },
+                    Err(_) => {
+                        panic!("wrong input for timestamp")
+                    }
+                }
+            }
+        }
     }
-    if let Some(end) = info.end_ts {
-        query = query.filter(items::ts_start.le(end));
+    if let Some(end_str) = info.end_ts {
+        match end_str.parse::<i64>(){
+            Ok(ts) => {
+                query = query.filter(items::ts_start.le(ts))
+            },
+            Err(_) => {
+                query = query.filter(items::ts_start.le(0))
+            }
+        }
     }
 
     // collector and project
