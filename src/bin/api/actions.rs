@@ -49,10 +49,10 @@ pub fn search_items(conn: &PgConnection, info: Info) -> Result<ItemsResult, Erro
 
     // timestamps filter
     if let Some(start) = info.start_ts {
-        query = query.filter(items::timestamp.ge(start));
+        query = query.filter(items::ts_end.gt(start));
     }
     if let Some(end) = info.end_ts {
-        query = query.filter(items::timestamp.le(end));
+        query = query.filter(items::ts_start.le(end));
     }
 
     // collector and project
@@ -77,24 +77,13 @@ pub fn search_items(conn: &PgConnection, info: Info) -> Result<ItemsResult, Erro
         query = query.filter(items::data_type.like(pattern))
     }
 
-    // if let Some(l) = info.limit {
-    //     // limit at MAX_SEARCH_LIMIT
-    //     if l < MAX_SEARCH_LIMIT {
-    //         query = query.limit(l);
-    //     } else {
-    //         query = query.limit(MAX_SEARCH_LIMIT);
-    //     }
-    // } else {
-    //     query = query.limit(DEFAULT_SEARCH_LIMIT);
-    // }
-
     if let Some(order) = &info.order {
         match order.to_lowercase().as_str() {
-            "asc"|"reverse" => {query = query.order(items::timestamp.asc());},
-            _ => {query = query.order(items::timestamp.desc());},
+            "asc"|"reverse" => {query = query.order(items::ts_start.asc());},
+            _ => {query = query.order(items::ts_start.desc());},
         }
     } else {
-        query = query.order(items::timestamp.asc());
+        query = query.order(items::ts_start.asc());
     }
 
     let (current_page, mut page_size) = (info.page.clone().unwrap(), info.page_size.clone().unwrap());
