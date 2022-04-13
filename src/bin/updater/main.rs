@@ -27,6 +27,10 @@ struct Opts {
     #[clap(short, long)]
     pretty: bool,
 
+    /// Verify files available and get file sizes
+    #[clap(short, long)]
+    verify: bool,
+
     /// Index wanted to scrape from, default to scrape from all collectors
     #[clap(long)]
     collector_id: Option<String>,
@@ -90,8 +94,7 @@ fn main () {
         }
     };
 
-    // let verify = opts.latest.clone();
-    let verify = true;
+    let verify = opts.verify.clone();
 
     rt.block_on(async {
         let rv_scraper = RouteViewsScraper{};
