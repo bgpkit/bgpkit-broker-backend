@@ -68,11 +68,6 @@ async fn get_meta(
                 .await;
             Ok(prepare_response(items))
         }
-        "latest_times" => {
-            let items = web::block(move || actions::get_latest_timestamps(&conn))
-                .await;
-            Ok(prepare_response(items))
-        }
         "total_count" => {
             let items = web::block(move || actions::get_total_count(&conn))
                 .await;

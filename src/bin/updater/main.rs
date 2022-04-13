@@ -52,7 +52,9 @@ fn main () {
         n => n/2,
     };
     info!("using {} cores for parsing html pages", blocking_cpus);
-    let rt = tokio::runtime::Builder::new_multi_thread().enable_all().max_blocking_threads(blocking_cpus).build().unwrap();
+    let rt = tokio::runtime::Builder::new_multi_thread().enable_all()
+        .max_blocking_threads(blocking_cpus)
+        .build().unwrap();
 
     let opts: Opts = Opts::parse();
     let config_file = std::fs::File::open(&opts.collectors_config).unwrap();
@@ -88,7 +90,8 @@ fn main () {
         }
     };
 
-    let verify = opts.latest.clone();
+    // let verify = opts.latest.clone();
+    let verify = true;
 
     rt.block_on(async {
         let rv_scraper = RouteViewsScraper{};

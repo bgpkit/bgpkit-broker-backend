@@ -57,7 +57,7 @@ impl RipeRisScraper {
         tokio::task::spawn_blocking(move || {
             let mut data_items = vec![];
             update_pattern.captures_iter(body.as_str()).for_each(|cap|{
-                let url = format!("{}/{}",url, cap[1].to_owned());
+                let url = format!("{}/{}",url, cap[1].to_owned()).replace("http", "https");
                 let updates_link_pattern: Regex = Regex::new(r#".*(........\.....)\.gz.*"#).unwrap();
                 let time_str = updates_link_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap().timestamp();
@@ -69,13 +69,12 @@ impl RipeRisScraper {
                         file_size: 0,
                         collector_id: collector_id.clone(),
                         data_type: "update".to_string(),
-                        file_info: Default::default()
                     }
                 );
             });
 
             rib_pattern.captures_iter(body.as_str()).for_each(|cap|{
-                let url = format!("{}/{}",url, cap[1].to_owned());
+                let url = format!("{}/{}",url, cap[1].to_owned()).replace("http", "https");
                 let url_time_pattern: Regex = Regex::new(r#".*(........\.....)\.gz.*"#).unwrap();
                 let time_str = url_time_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap().timestamp();
@@ -87,7 +86,6 @@ impl RipeRisScraper {
                         file_size: 0,
                         collector_id: collector_id.clone(),
                         data_type: "rib".to_string(),
-                        file_info: Default::default()
                     });
             });
             data_items
@@ -116,7 +114,6 @@ impl RipeRisScraper {
                                 file_size: file_size as i64,
                                 collector_id: x.collector_id,
                                 data_type: x.data_type,
-                                file_info: x.file_info,
                                 url: x.url,
                             }
                         )

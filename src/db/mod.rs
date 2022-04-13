@@ -75,7 +75,9 @@ mod tests {
     #[test]
     fn test_insert() {
         env_logger::init();
-        let conn = DbConnection::new("postgres://broker_user:broker@10.2.2.103/broker");
+        let _ = dotenv::dotenv();
+        let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let conn = DbConnection::new(db_url.as_str());
 
         let collectors = vec![Collector{
             id: "rrc00".to_string(),
@@ -84,15 +86,14 @@ mod tests {
         }];
         let mut entries = vec![];
         info!("creating entries...");
-        for t in 1..1_000_000 {
+        for t in 1..1_000 {
             entries.push(Item{
                 ts_start: t,
                 ts_end: t+60*5,
                 collector_id: "rrc00".to_string(),
                 data_type: "rib".to_string(),
-                url: "testurl".to_string(),
+                url: format!("{}-test", t),
                 file_size: 0,
-                file_info: Default::default()
             })
         };
         info!("creating entries... done");

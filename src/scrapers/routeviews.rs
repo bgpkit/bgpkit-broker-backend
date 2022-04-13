@@ -69,7 +69,6 @@ impl RouteViewsScraper {
                     file_size: 0,
                     collector_id: collector_id.clone(),
                     data_type: data_type.clone(),
-                    file_info: Default::default(),
                     url,
                 }
             }).collect()
@@ -98,7 +97,6 @@ impl RouteViewsScraper {
                                 file_size: file_size as i64,
                                 collector_id: x.collector_id,
                                 data_type: x.data_type,
-                                file_info: x.file_info,
                                 url: x.url,
                             }
                         )

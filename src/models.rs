@@ -1,6 +1,5 @@
 use crate::db::schema::{collectors,items};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 #[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
 #[table_name="collectors"]
@@ -35,7 +34,6 @@ pub struct Item {
     pub data_type: String,
     pub url: String,
     pub file_size: i64,
-    pub file_info: Value,
 }
 
 #[derive(Debug, Queryable, Serialize, Deserialize)]

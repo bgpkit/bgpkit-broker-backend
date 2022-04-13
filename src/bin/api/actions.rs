@@ -3,7 +3,7 @@ use diesel::{ExpressionMethods, PgConnection, QueryDsl, TextExpressionMethods, R
 use diesel::dsl::count_star;
 use diesel::result::Error;
 use chrono::NaiveDateTime;
-use bgpkit_broker_backend::models::{Collector, Item, UpdateTime};
+use bgpkit_broker_backend::models::{Collector, Item};
 use crate::pagination::LoadPaginated;
 
 const MAX_PAGE_SIZE: i64 = 100_000;
@@ -127,11 +127,6 @@ pub fn search_items(conn: &PgConnection, info: Info) -> Result<ItemsResult, Erro
 pub fn get_collectors(conn: &PgConnection) -> Result<Vec<Collector>, Error> {
     use bgpkit_broker_backend::db::schema::collectors::dsl::*;
     collectors.load::<Collector>(conn)
-}
-
-pub fn get_latest_timestamps(conn: &PgConnection) -> Result<Vec<UpdateTime>, Error> {
-    use bgpkit_broker_backend::db::schema::latest_times::dsl::*;
-    latest_times.load::<UpdateTime>(conn)
 }
 
 pub fn get_total_count(conn: &PgConnection) -> Result<i64, Error> {

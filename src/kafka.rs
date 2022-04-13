@@ -113,7 +113,6 @@ mod tests {
                 data_type: "rib".to_string(),
                 url: "http://testurl.com".to_string(),
                 file_size: 0,
-                file_info: Default::default()
             },
             Item {
                 ts_start: 0,
@@ -122,7 +121,6 @@ mod tests {
                 data_type: "rib".to_string(),
                 url: "http://testurl.com".to_string(),
                 file_size: 0,
-                file_info: Default::default()
             },
         ];
 
