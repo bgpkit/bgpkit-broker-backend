@@ -1,8 +1,8 @@
 use std::env;
 use clap::Clap;
 use log::info;
-use futures::future::join_all;
 use dotenv;
+use futures::StreamExt;
 use bgpkit_broker_backend::config::Config;
 use bgpkit_broker_backend::db::DbConnection;
 use bgpkit_broker_backend::kafka::KafkaProducer;
@@ -117,8 +117,15 @@ fn main () {
 
         info!("start scraping for {} collectors", &collectors.len());
 
-        join_all(rv_futures).await;
-        join_all(ris_futures).await;
+        let mut stream =
+            futures::stream::iter(rv_futures).buffer_unordered(4);
+        while let Some(_) = stream.next().await {
+        }
+
+        let mut stream =
+            futures::stream::iter(ris_futures).buffer_unordered(4);
+        while let Some(_) = stream.next().await {
+        }
     });
 }
 
