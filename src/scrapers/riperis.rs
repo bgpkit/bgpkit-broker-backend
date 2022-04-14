@@ -8,7 +8,7 @@ pub struct RipeRisScraper {}
 
 impl RipeRisScraper {
     /// `scrape` implementation for RIPE RIS.
-    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>, verify: bool) -> Result<(), ScrapeError> {
+    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError> {
         info!("scraping RIPE RIS collector {}; only latest month = {}", collector.id, &latest);
 
         let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
@@ -37,8 +37,7 @@ impl RipeRisScraper {
                 rib_link_pattern.clone(),
                 collector.id.clone(),
                 db,
-                kafka,
-                verify
+                kafka
             ))
         }
 
@@ -46,7 +45,7 @@ impl RipeRisScraper {
         Ok( () )
     }
 
-    async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>, verify: bool) -> Result<(), ScrapeError>{
+    async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError>{
         info!("scraping data for {} ...", &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("   download   for {} finished", &month);
@@ -93,39 +92,22 @@ impl RipeRisScraper {
 
         if let Some(conn) = db {
             info!("   insert to db for {}...", &month);
-            let new_items = if verify{
                 let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
-                let new_urls = data_items.iter().filter(|x| !current_month_items.contains(&x.url))
-                    .map(|x| x.url.clone())
-                    .collect::<Vec<String>>();
-                let file_sizes = verify_urls(&new_urls).await;
-                let good_count = file_sizes.values().filter(|x| **x>0).count();
-                info!("    total {} new urls, {} verified working", new_urls.len(), good_count);
-                data_items.into_iter().filter_map(|x| {
+            let new_items = data_items.into_iter().filter_map(|x| {
                     if current_month_items.contains(&x.url) {
                         return None
                     }
-                    let file_size = file_sizes.get(&x.url).unwrap().to_owned();
-                    if file_size>0 {
-                        Some(
-                            Item {
-                                ts_start: x.ts_start,
-                                ts_end: x.ts_end,
-                                file_size: file_size as i64,
-                                collector_id: x.collector_id,
-                                data_type: x.data_type,
-                                url: x.url,
-                            }
-                        )
-                    } else {
-                        None
-                    }
-                }
-                )
-                    .collect::<Vec<Item>>()
-            } else {
-                data_items
-            };
+                    Some(
+                        Item {
+                            ts_start: x.ts_start,
+                            ts_end: x.ts_end,
+                            file_size: 0,
+                            collector_id: x.collector_id,
+                            data_type: x.data_type,
+                            url: x.url,
+                        }
+                    )
+                }).collect::<Vec<Item>>();
             let inserted = conn.insert_items(&new_items);
             if let Some(producer) = kafka {
                 if inserted.len()>0 {
@@ -163,7 +145,7 @@ mod tests {
             url: "http://data.ris.ripe.net/rrc00".to_string()
         };
         let ris_scraper = RipeRisScraper{};
-        ris_scraper.scrape(&ris_collector, true, Some(&conn), None, true).await.unwrap();
+        ris_scraper.scrape(&ris_collector, true, Some(&conn), None).await.unwrap();
     }
 
 }

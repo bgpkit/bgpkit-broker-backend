@@ -15,6 +15,7 @@ pub use riperis::RipeRisScraper;
 use crate::db::DbConnection;
 use futures::stream::StreamExt;
 
+#[allow(dead_code)]
 async fn verify_urls(urls: &Vec<String>) -> HashMap<String, i64> {
     // create stream of futures, 100 requests concurrent at most.
     let mut stream =

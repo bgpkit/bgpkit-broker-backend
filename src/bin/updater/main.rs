@@ -2,7 +2,7 @@ use std::env;
 use clap::Clap;
 use log::info;
 use dotenv;
-use futures::StreamExt;
+use futures::future::join_all;
 use bgpkit_broker_backend::config::Config;
 use bgpkit_broker_backend::db::DbConnection;
 use bgpkit_broker_backend::kafka::KafkaProducer;
@@ -94,8 +94,6 @@ fn main () {
         }
     };
 
-    let verify = opts.verify.clone();
-
     rt.block_on(async {
         let rv_scraper = RouteViewsScraper{};
         let ris_scraper = RipeRisScraper{};
@@ -106,10 +104,10 @@ fn main () {
         collectors.iter().for_each(|c| {
             match c.project.as_str() {
                 "routeviews" => {
-                    rv_futures.push(rv_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer, verify));
+                    rv_futures.push(rv_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer));
                 }
                 "riperis" => {
-                    ris_futures.push(ris_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer, verify));
+                    ris_futures.push(ris_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer));
                 }
                 _ => {panic!("")}
             }
@@ -117,15 +115,8 @@ fn main () {
 
         info!("start scraping for {} collectors", &collectors.len());
 
-        let mut stream =
-            futures::stream::iter(rv_futures).buffer_unordered(4);
-        while let Some(_) = stream.next().await {
-        }
-
-        let mut stream =
-            futures::stream::iter(ris_futures).buffer_unordered(4);
-        while let Some(_) = stream.next().await {
-        }
+        join_all(rv_futures).await;
+        join_all(ris_futures).await;
     });
 }
 
