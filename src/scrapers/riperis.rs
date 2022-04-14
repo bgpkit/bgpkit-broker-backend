@@ -50,8 +50,6 @@ impl RipeRisScraper {
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("   download   for {} finished", &month);
 
-        let collector_clone = collector_id.clone();
-
         let data_items =
         tokio::task::spawn_blocking(move || {
             let mut data_items = vec![];
@@ -92,23 +90,7 @@ impl RipeRisScraper {
 
         if let Some(conn) = db {
             info!("   insert to db for {}...", &month);
-                let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
-            let new_items = data_items.into_iter().filter_map(|x| {
-                    if current_month_items.contains(&x.url) {
-                        return None
-                    }
-                    Some(
-                        Item {
-                            ts_start: x.ts_start,
-                            ts_end: x.ts_end,
-                            file_size: 0,
-                            collector_id: x.collector_id,
-                            data_type: x.data_type,
-                            url: x.url,
-                        }
-                    )
-                }).collect::<Vec<Item>>();
-            let inserted = conn.insert_items(&new_items);
+            let inserted = conn.insert_items(&data_items);
             if let Some(producer) = kafka {
                 if inserted.len()>0 {
                     info!("   announcing new items to kafka ...");
