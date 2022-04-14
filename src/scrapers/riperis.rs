@@ -4,7 +4,9 @@ use futures::future::join_all;
 use tokio;
 use crate::kafka::KafkaProducer;
 
-pub struct RipeRisScraper {}
+pub struct RipeRisScraper {
+    pub update_mode: bool
+}
 
 impl RipeRisScraper {
     /// `scrape` implementation for RIPE RIS.
@@ -46,9 +48,11 @@ impl RipeRisScraper {
     }
 
     async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError>{
-        info!("scraping data for {} ...", &month);
+        info!("scraping data for {} {} ...", collector_id.as_str(), &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("   download   for {} finished", &month);
+
+        let collector_clone = collector_id.clone();
 
         let data_items =
         tokio::task::spawn_blocking(move || {
@@ -89,8 +93,19 @@ impl RipeRisScraper {
         }).await.unwrap();
 
         if let Some(conn) = db {
-            info!("   insert to db for {}...", &month);
-            let inserted = conn.insert_items(&data_items);
+            info!("   insert to db for {} {}...", collector_clone.as_str(), &month);
+
+            let to_insert = if self.update_mode {
+                let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
+                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url))
+                    .collect::<Vec<Item>>()
+            } else {
+                data_items
+            };
+
+            let inserted = conn.insert_items(&to_insert);
+            info!("tried to insert {} items, actually inserted {} items", to_insert.len(), inserted.len());
+
             if let Some(producer) = kafka {
                 if inserted.len()>0 {
                     info!("   announcing new items to kafka ...");
@@ -126,7 +141,7 @@ mod tests {
             project: "riperis".to_string(),
             url: "http://data.ris.ripe.net/rrc00".to_string()
         };
-        let ris_scraper = RipeRisScraper{};
+        let ris_scraper = RipeRisScraper{ update_mode: true};
         ris_scraper.scrape(&ris_collector, true, Some(&conn), None).await.unwrap();
     }
 

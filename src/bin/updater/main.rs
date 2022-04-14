@@ -95,8 +95,8 @@ fn main () {
     };
 
     rt.block_on(async {
-        let rv_scraper = RouteViewsScraper{};
-        let ris_scraper = RipeRisScraper{};
+        let rv_scraper = RouteViewsScraper{ update_mode: true };
+        let ris_scraper = RipeRisScraper{ update_mode: true };
 
         let mut rv_futures = vec![];
         let mut ris_futures = vec![];

@@ -3,7 +3,9 @@ use log::info;
 use futures::future::join_all;
 use crate::kafka::KafkaProducer;
 
-pub struct RouteViewsScraper{}
+pub struct RouteViewsScraper{
+    pub update_mode: bool
+}
 
 impl RouteViewsScraper {
 
@@ -44,9 +46,11 @@ impl RouteViewsScraper {
     }
 
     async fn scrape_items(&self, url: String, month: String, data_type_str: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError>{
-        info!("scraping data for {}-{} ... ", &month, &data_type_str);
+        info!("scraping data for {} {}-{} ... ", collector_id.as_str(), &month, &data_type_str);
         let body = reqwest::get(&url).await?.text().await?;
-        info!("     download for {}-{} finished ", &month, &data_type_str);
+        info!("     download for {} {}-{} finished ", collector_id.as_str(), &month, &data_type_str);
+
+        let collector_clone = collector_id.clone();
 
         let data_items: Vec<Item> =
         tokio::task::spawn_blocking(move || {
@@ -73,8 +77,19 @@ impl RouteViewsScraper {
         }).await.unwrap();
 
         if let Some(conn) = db {
-            info!("   insert to db for {}-{}...", &month, &data_type_str);
-            let inserted = conn.insert_items(&data_items);
+            info!("   insert to db for {} {}...", collector_clone.as_str(), &month);
+
+            let to_insert = if self.update_mode {
+
+                let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
+                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url))
+                    .collect::<Vec<Item>>()
+            } else {
+                data_items
+            };
+
+            let inserted = conn.insert_items(&to_insert);
+            info!("tried to insert {} items, actually inserted {} items", to_insert.len(), inserted.len());
 
             if let Some(producer) = kafka {
                 if inserted.len()>0 {
@@ -102,7 +117,7 @@ mod tests {
             project: "routeviews".to_string(),
             url: "http://archive.routeviews.org/bgpdata".to_string()
         };
-        let rv_scraper = RouteViewsScraper{};
+        let rv_scraper = RouteViewsScraper{ update_mode: true };
         let _ = rv_scraper.scrape(&rv_collector, true, None, None).await;
     }
 }
