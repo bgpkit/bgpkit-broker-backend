@@ -1,5 +1,3 @@
--- Your SQL goes here
-
 CREATE TABLE IF NOT EXISTS collectors
 (
     id text NOT NULL,
@@ -24,6 +22,11 @@ CREATE TABLE IF NOT EXISTS items
         ON DELETE NO ACTION
 );
 
+CREATE INDEX IF NOT EXISTS "timestamp"
+    ON items USING brin
+        (ts_start)
+    TABLESPACE pg_default;
+
 CREATE MATERIALIZED VIEW IF NOT EXISTS latest_times
 AS
 SELECT items.ts_start AS "timestamp",
@@ -40,11 +43,3 @@ FROM ( SELECT max(items_1.ts_start) AS ts_start,
          JOIN collectors ON nested.collector_id = collectors.id
          JOIN items ON nested.ts_start = items.ts_start AND nested.collector_id = items.collector_id AND items.data_type = nested.data_type;
 
-ALTER TABLE IF EXISTS collectors
-    OWNER to bgpkit_admin;
-
-ALTER TABLE IF EXISTS items
-    OWNER to bgpkit_admin;
-
-ALTER MATERIALIZED VIEW IF EXISTS latest_times
-    OWNER to bgpkit_admin;
