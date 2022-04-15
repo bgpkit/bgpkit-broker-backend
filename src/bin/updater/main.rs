@@ -51,10 +51,7 @@ fn main () {
     let _ = dotenv::dotenv();
 
     // configure async runtime
-    let blocking_cpus = match num_cpus::get() {
-        1 => 1,
-        n => n/2,
-    };
+    let blocking_cpus = num_cpus::get();
     info!("using {} cores for parsing html pages", blocking_cpus);
     let rt = tokio::runtime::Builder::new_multi_thread().enable_all()
         .max_blocking_threads(blocking_cpus)
