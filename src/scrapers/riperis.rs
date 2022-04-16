@@ -12,14 +12,22 @@ impl RipeRisScraper {
     pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>) -> Result<(), ScrapeError> {
         info!("scraping RIPE RIS collector {}; only latest month = {}", collector.id, &latest);
 
-
         let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
         let rib_link_pattern: Regex = Regex::new(r#"<a href="(b?view\..*\.gz)">.*"#).unwrap();
         let updates_link_pattern: Regex = Regex::new(r#"<a href="(updates\..*\.gz)">.*"#).unwrap();
 
         let body = reqwest::get(collector.url.as_str()).await?.text().await?;
-        let mut months: Vec<String> = month_link_pattern.captures_iter(body.as_str()).map(|cap|{
-            cap[1].to_owned()
+        let mut months: Vec<String> = month_link_pattern.captures_iter(body.as_str()).filter_map(|cap|{
+            let month = cap[1].to_owned();
+            if !latest {
+                if let Some(conn) = db {
+                    if conn.count_records_in_month(collector.id.as_str(), month.as_str()) > 0 {
+                        info!("skip month {} for {} in bootstrap mode", month.as_str(), collector.id.as_str());
+                        return None
+                    }
+                }
+            }
+            Some(month)
         }).collect();
 
         if latest {
@@ -33,7 +41,6 @@ impl RipeRisScraper {
             let url = format!("{}/{}", collector.url, month);
             self.scrape_month(
                 url,
-                latest,
                 month,
                 updates_link_pattern.clone(),
                 rib_link_pattern.clone(),
@@ -41,22 +48,13 @@ impl RipeRisScraper {
                 db,
             )
         }).buffer_unordered(100);
-        while let Some(res) = stream.next().await {
-            res.unwrap();
+        while let Some(_res) = stream.next().await {
         }
 
         Ok( () )
     }
 
-    async fn scrape_month(&self, url: String, latest: bool, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
-        if !latest {
-            if let Some(conn) = db {
-                if conn.count_records_in_month(collector_id.as_str(), month.as_str()) > 0 {
-                    info!("skip month {} for {} in bootstrap mode", month.as_str(), collector_id.as_str());
-                    return Ok(())
-                }
-            }
-        }
+    async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         info!("scraping data for {} {} ...", collector_id.as_str(), &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("   download   for {} finished", &month);

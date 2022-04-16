@@ -19,8 +19,17 @@ impl RouteViewsScraper {
         let updates_link_pattern: Regex = Regex::new(r#"<a href="(updates\..*\.bz2)">.*"#).unwrap();
 
         let body = reqwest::get(collector.url.as_str()).await?.text().await?;
-        let mut months: Vec<String> = month_link_pattern.captures_iter(body.as_str()).map(|cap|{
-            cap[1].to_owned()
+        let mut months: Vec<String> = month_link_pattern.captures_iter(body.as_str()).filter_map(|cap|{
+            let month = cap[1].to_owned();
+            if !latest {
+                if let Some(conn) = db {
+                    if conn.count_records_in_month(collector.id.as_str(), month.as_str()) > 0 {
+                        info!("skip month {} for {} in bootstrap mode", month.as_str(), collector.id.as_str());
+                        return None
+                    }
+                }
+            }
+            Some(month)
         }).collect();
 
         if latest {
@@ -32,32 +41,23 @@ impl RouteViewsScraper {
 
         let mut stream = futures::stream::iter(months.clone()).map(|month| {
             let ribs_url = format!("{}/{}/RIBS", collector.url, month);
-            self.scrape_items(ribs_url, latest, month.to_string(), "rib".to_string(), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db)
+            self.scrape_items(ribs_url, month.to_string(), "rib".to_string(), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db)
         }).buffer_unordered(100);
-        while let Some(res) = stream.next().await { res.unwrap() }
+        while let Some(_res) = stream.next().await { }
 
         let mut stream = futures::stream::iter(months).map(|month| {
             let updates_url = format!("{}/{}/UPDATES", collector.url, month);
-            self.scrape_items(updates_url, latest, month.to_string(), "update".to_string(), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db)
+            self.scrape_items(updates_url, month.to_string(), "update".to_string(), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db)
         }).buffer_unordered(100);
-        while let Some(res) = stream.next().await { res.unwrap() }
+        while let Some(_res) = stream.next().await {  }
 
         Ok( () )
     }
 
-    async fn scrape_items(&self, url: String, latest: bool, month: String, data_type_str: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
+    async fn scrape_items(&self, url: String, month: String, data_type_str: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         info!("scraping data for {} {}-{} ... ", collector_id.as_str(), &month, &data_type_str);
         let body = reqwest::get(&url).await?.text().await?;
         info!("     download for {} {}-{} finished ", collector_id.as_str(), &month, &data_type_str);
-
-        if !latest {
-            if let Some(conn) = db {
-                if conn.count_records_in_month(collector_id.as_str(), month.as_str()) > 0 {
-                    info!("skip month {} for {} in bootstrap mode", month.as_str(), collector_id.as_str());
-                    return Ok(())
-                }
-            }
-        }
 
         let collector_clone = collector_id.clone();
 
