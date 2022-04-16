@@ -1,6 +1,6 @@
 use crate::scrapers::*;
 use log::info;
-use futures::future::join_all;
+use futures::StreamExt;
 
 pub struct RouteViewsScraper{
     pub update_mode: bool,
@@ -30,17 +30,18 @@ impl RouteViewsScraper {
 
         info!("total of {} months to scrape", months.len());
 
-        let futures: Vec<_> = months.iter().flat_map(|month| {
+        let mut stream = futures::stream::iter(months.clone()).map(|month| {
             let ribs_url = format!("{}/{}/RIBS", collector.url, month);
+            self.scrape_items(ribs_url, month.to_string(), "rib".to_string(), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db)
+        }).buffer_unordered(100);
+        while let Some(res) = stream.next().await { res.unwrap() }
+
+        let mut stream = futures::stream::iter(months).map(|month| {
             let updates_url = format!("{}/{}/UPDATES", collector.url, month);
+            self.scrape_items(updates_url, month.to_string(), "update".to_string(), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db)
+        }).buffer_unordered(100);
+        while let Some(res) = stream.next().await { res.unwrap() }
 
-            [
-                self.scrape_items(ribs_url, month.to_string(), "rib".to_string(), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db),
-                self.scrape_items(updates_url, month.to_string(), "update".to_string(), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db)
-            ]
-        }).collect();
-
-        join_all(futures).await;
         Ok( () )
     }
 

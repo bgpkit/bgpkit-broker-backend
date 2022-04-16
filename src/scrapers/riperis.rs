@@ -1,6 +1,6 @@
 use crate::scrapers::*;
 use log::info;
-use futures::future::join_all;
+use futures::StreamExt;
 use tokio;
 
 pub struct RipeRisScraper {
@@ -28,20 +28,21 @@ impl RipeRisScraper {
 
         info!("total of {} months to scrape", months.len());
 
-        let mut futures = vec![];
-        for month in months {
+        let mut stream = futures::stream::iter(months.clone()).map(|month| {
             let url = format!("{}/{}", collector.url, month);
-            futures.push(self.scrape_month(
+            self.scrape_month(
                 url,
                 month.clone(),
                 updates_link_pattern.clone(),
                 rib_link_pattern.clone(),
                 collector.id.clone(),
                 db,
-            ))
+            )
+        }).buffer_unordered(100);
+        while let Some(res) = stream.next().await {
+            res.unwrap();
         }
 
-        join_all(futures).await;
         Ok( () )
     }
 
