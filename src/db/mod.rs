@@ -3,6 +3,7 @@ pub mod schema;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use chrono::NaiveDateTime;
+use diesel::dsl::count;
 use crate::models::*;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
@@ -29,6 +30,23 @@ impl DbConnection {
             .values(entries)
             .on_conflict_do_nothing()
             .execute(&self.conn).unwrap();
+    }
+
+    pub fn count_records_in_month(&self, collector: &str, month_str: &str) -> i64 {
+        use schema::items::dsl::*;
+
+        let start_ts = match NaiveDateTime::parse_from_str(format!("{}.01T00:00:00", month_str).as_str(), "%Y.%m.%dT%H:%M:%S"){
+            Ok(t) => {t}
+            Err(e) => {
+                panic!("parsing {} failed: {}", month_str, e.to_string())
+            }
+        };
+        let end_ts = start_ts + chrono::Duration::days(31);
+        items
+            .filter(collector_id.eq(collector))
+            .filter(ts_start.ge(start_ts.timestamp()))
+            .filter(ts_start.le(end_ts.timestamp()))
+            .select(count(url)).first::<i64>(&self.conn).unwrap()
     }
 
     pub fn get_urls_in_month(&self, collector: &str, month_str: &str) -> HashSet<String> {

@@ -52,8 +52,7 @@ impl RouteViewsScraper {
 
         if !latest {
             if let Some(conn) = db {
-                let current_month_items = conn.get_urls_in_month(collector_id.as_str(), month.as_str());
-                if !current_month_items.is_empty() {
+                if conn.count_records_in_month(collector_id.as_str(), month.as_str()) > 0 {
                     info!("skip month {} for {} in bootstrap mode", month.as_str(), collector_id.as_str());
                     return Ok(())
                 }

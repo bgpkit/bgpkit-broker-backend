@@ -51,8 +51,7 @@ impl RipeRisScraper {
     async fn scrape_month(&self, url: String, latest: bool, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         if !latest {
             if let Some(conn) = db {
-                let current_month_items = conn.get_urls_in_month(collector_id.as_str(), month.as_str());
-                if !current_month_items.is_empty() {
+                if conn.count_records_in_month(collector_id.as_str(), month.as_str()) > 0 {
                     info!("skip month {} for {} in bootstrap mode", month.as_str(), collector_id.as_str());
                     return Ok(())
                 }
