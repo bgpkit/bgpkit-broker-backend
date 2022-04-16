@@ -12,7 +12,7 @@ const CHUNK_SIZE: usize = 60_000;
 
 
 pub struct DbConnection {
-    conn: PgConnection,
+    pub conn: PgConnection,
 }
 
 
@@ -48,17 +48,12 @@ impl DbConnection {
             .select(url).load::<String>(&self.conn).unwrap().into_iter())
     }
 
-    pub fn get_urls_unverified(&self, limit: Option<i64>) -> Vec<String> {
+    pub fn get_urls_unverified(&self, limit: i64) -> Vec<Item> {
         use schema::items::dsl::*;
-        let limit = match limit {
-            Some(l) => l,
-            None => 1000,
-        };
         items.filter(file_size.eq(0))
             .order(ts_start.desc())
             .limit(limit)
-            .select(url).load::<String>(&self.conn)
-            .unwrap()
+            .load::<Item>(&self.conn).unwrap()
     }
 
     pub fn insert_items(&self, entries: &Vec<Item>) -> Vec<Item> {
@@ -119,17 +114,6 @@ mod tests {
         let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         let conn = DbConnection::new(db_url.as_str());
         let items = conn.get_urls_in_month("rrc25", "2022.02");
-        for item in items {
-            println!("{}", item)
-        }
-    }
-
-    #[test]
-    fn test_get_unverified() {
-        let _ = dotenv::dotenv();
-        let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let conn = DbConnection::new(db_url.as_str());
-        let items = conn.get_urls_unverified(Some(10));
         for item in items {
             println!("{}", item)
         }

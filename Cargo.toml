@@ -6,7 +6,11 @@ edition = "2018"
 
 [[bin]]
 name = "bgpkit-broker-updater"
-path = "src/bin/updater/main.rs"
+path = "src/bin/updater/files.rs"
+
+[[bin]]
+name = "bgpkit-broker-size-checker"
+path = "src/bin/updater/sizes.rs"
 
 [[bin]]
 name = "bgpkit-broker-api"
@@ -34,7 +38,7 @@ serde_json = {version = "1"}
 futures = "0.3.21"
 
 # database dependency
-diesel = {version="1.4.4", features=["postgres", "sqlite", "r2d2", "serde_json"]}
+diesel = {version="1.4.4", features=["postgres", "r2d2", "serde_json"]}
 dotenv = "0.15.0"
 
 # kafka

@@ -1,46 +1,30 @@
 pub mod routeviews;
 pub mod riperis;
 
-use std::collections::HashMap;
 use std::time::Duration;
 use crate::models::*;
 use crate::errors::*;
 use regex::Regex;
 use chrono::NaiveDateTime;
-use log::warn;
+use log::{info, warn};
 use tokio::time::sleep;
 
 pub use routeviews::RouteViewsScraper;
 pub use riperis::RipeRisScraper;
 use crate::db::DbConnection;
-use futures::stream::StreamExt;
 
-#[allow(dead_code)]
-async fn verify_urls(urls: &Vec<String>) -> HashMap<String, i64> {
-    // create stream of futures, 100 requests concurrent at most.
-    let mut stream =
-        futures::stream::iter(urls)
-            .map( |url| verify_url_hyper(url.as_str()) )
-            .buffer_unordered(100);
-
-    let mut verified = HashMap::new();
-    while let Some((url, size)) = stream.next().await {
-        verified.insert(url, size);
-    }
-
-    return verified
-}
-
-async fn verify_url_hyper(url: &str) -> (String, i64) {
-    let url_clone = url.to_string();
+pub async fn check_size(mut item: Item) -> Option<Item> {
+    let url_clone = item.url.to_string();
 
     let client = reqwest::Client::new();
 
+    info!("checking {}", url_clone.as_str());
     let mut retry_left = 3;
     let mut res = None;
     loop {
         res = match client.get(url_clone.as_str()).send().await{
             Ok(res) => {
+                info!("finished checking {}", url_clone.as_str());
                 Some(res)
             }
             Err(e) => {
@@ -58,32 +42,30 @@ async fn verify_url_hyper(url: &str) -> (String, i64) {
     }
 
     if res.is_none() {
-        return (url_clone, 0)
+        return None
     }
     let response = match res{
         None => {
-            return (url_clone, 0)
+            return None
         }
         Some(r) => {r}
     };
 
     if !response.status().is_success() {
-        return (url_clone, 0)
+        return None
     }
     let total_size = match response.content_length(){
         None => {
-            0
+            return None
         }
         Some(l) => {
             l as i64
         }
     };
 
-    return if total_size > 0 {
-        (url_clone, total_size)
-    } else {
-        (url_clone, total_size)
-    }
+    item.file_size = total_size;
+
+    return Some(item)
 }
 
 #[cfg(test)]

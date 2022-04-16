@@ -25,8 +25,9 @@ impl DataType {
     }
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Queryable, Insertable, Identifiable, Serialize, Deserialize, Eq, PartialEq, AsChangeset)]
 #[table_name="items"]
+#[primary_key(url)]
 pub struct Item {
     pub ts_start: i64,
     pub ts_end: i64,
