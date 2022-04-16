@@ -1,7 +1,7 @@
 use std::env;
 use clap::Clap;
 use log::info;
-use futures::future::join_all;
+use futures::StreamExt;
 use bgpkit_broker_backend::config::Config;
 use bgpkit_broker_backend::db::DbConnection;
 use bgpkit_broker_backend::models::Collector;
@@ -88,15 +88,14 @@ fn main () {
 
     rt.block_on(async {
 
-        let mut futures = vec![];
-
-        collectors.iter().for_each(|c| {
-            futures.push(run_scraper(c, opts.latest, &conn))
-        });
+        let mut stream = futures::stream:: iter(&collectors)
+            .map(|c| run_scraper(c, opts.latest, &conn))
+            .buffer_unordered(100);
 
         info!("start scraping for {} collectors", &collectors.len());
-
-        join_all(futures).await;
+        loop  {
+            stream.next().await;
+        }
     });
 }
 
