@@ -32,23 +32,33 @@ impl RouteViewsScraper {
 
         let mut stream = futures::stream::iter(months.clone()).map(|month| {
             let ribs_url = format!("{}/{}/RIBS", collector.url, month);
-            self.scrape_items(ribs_url, month.to_string(), "rib".to_string(), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db)
+            self.scrape_items(ribs_url, latest, month.to_string(), "rib".to_string(), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db)
         }).buffer_unordered(100);
         while let Some(res) = stream.next().await { res.unwrap() }
 
         let mut stream = futures::stream::iter(months).map(|month| {
             let updates_url = format!("{}/{}/UPDATES", collector.url, month);
-            self.scrape_items(updates_url, month.to_string(), "update".to_string(), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db)
+            self.scrape_items(updates_url, latest, month.to_string(), "update".to_string(), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db)
         }).buffer_unordered(100);
         while let Some(res) = stream.next().await { res.unwrap() }
 
         Ok( () )
     }
 
-    async fn scrape_items(&self, url: String, month: String, data_type_str: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
+    async fn scrape_items(&self, url: String, latest: bool, month: String, data_type_str: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         info!("scraping data for {} {}-{} ... ", collector_id.as_str(), &month, &data_type_str);
         let body = reqwest::get(&url).await?.text().await?;
         info!("     download for {} {}-{} finished ", collector_id.as_str(), &month, &data_type_str);
+
+        if !latest {
+            if let Some(conn) = db {
+                let current_month_items = conn.get_urls_in_month(collector_id.as_str(), month.as_str());
+                if !current_month_items.is_empty() {
+                    info!("skip month {} for {} in bootstrap mode", month.as_str(), collector_id.as_str());
+                    return Ok(())
+                }
+            }
+        }
 
         let collector_clone = collector_id.clone();
 

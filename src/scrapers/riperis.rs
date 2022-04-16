@@ -12,6 +12,7 @@ impl RipeRisScraper {
     pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>) -> Result<(), ScrapeError> {
         info!("scraping RIPE RIS collector {}; only latest month = {}", collector.id, &latest);
 
+
         let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
         let rib_link_pattern: Regex = Regex::new(r#"<a href="(b?view\..*\.gz)">.*"#).unwrap();
         let updates_link_pattern: Regex = Regex::new(r#"<a href="(updates\..*\.gz)">.*"#).unwrap();
@@ -32,7 +33,8 @@ impl RipeRisScraper {
             let url = format!("{}/{}", collector.url, month);
             self.scrape_month(
                 url,
-                month.clone(),
+                latest,
+                month,
                 updates_link_pattern.clone(),
                 rib_link_pattern.clone(),
                 collector.id.clone(),
@@ -46,7 +48,16 @@ impl RipeRisScraper {
         Ok( () )
     }
 
-    async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
+    async fn scrape_month(&self, url: String, latest: bool, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
+        if !latest {
+            if let Some(conn) = db {
+                let current_month_items = conn.get_urls_in_month(collector_id.as_str(), month.as_str());
+                if !current_month_items.is_empty() {
+                    info!("skip month {} for {} in bootstrap mode", month.as_str(), collector_id.as_str());
+                    return Ok(())
+                }
+            }
+        }
         info!("scraping data for {} {} ...", collector_id.as_str(), &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("   download   for {} finished", &month);
@@ -109,32 +120,4 @@ impl RipeRisScraper {
         info!("scraping data for {} ... finished", &month);
         Ok(())
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::env;
-    use super::*;
-    use env_logger;
-
-    #[tokio::test]
-    async fn test_routeviews() {
-    }
-
-    #[tokio::test]
-    async fn test_routeviews_with_db() {
-        env_logger::init();
-        let _ = dotenv::dotenv();
-        let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let conn = DbConnection::new(db_url.as_str());
-
-        let ris_collector = Collector{
-            id: "rrc00".to_string(),
-            project: "riperis".to_string(),
-            url: "http://data.ris.ripe.net/rrc00".to_string()
-        };
-        let ris_scraper = RipeRisScraper{ update_mode: true};
-        ris_scraper.scrape(&ris_collector, true, Some(&conn)).await.unwrap();
-    }
-
 }
