@@ -1,11 +1,9 @@
 use std::env;
 use clap::Clap;
 use log::info;
-use dotenv;
 use futures::future::join_all;
 use bgpkit_broker_backend::config::Config;
 use bgpkit_broker_backend::db::DbConnection;
-use bgpkit_broker_backend::kafka::KafkaProducer;
 use bgpkit_broker_backend::models::Collector;
 use bgpkit_broker_backend::scrapers::{RipeRisScraper, RouteViewsScraper};
 
@@ -34,14 +32,18 @@ struct Opts {
     /// Index wanted to scrape from, default to scrape from all collectors
     #[clap(long)]
     collector_id: Option<String>,
+}
 
-    /// Kafka broker URL
-    #[clap(long)]
-    kafka_broker: Option<String>,
-
-    /// Kafka topic
-    #[clap(long)]
-    kafka_topic: Option<String>,
+async fn run_scraper(c: &Collector, latest:bool, conn: &DbConnection) {
+    match c.project.as_str() {
+        "routeviews" => {
+            RouteViewsScraper{update_mode: latest}.scrape(c, latest, Some(conn)).await.unwrap();
+        }
+        "riperis" => {
+            RipeRisScraper{update_mode: latest}.scrape(c, latest, Some(conn)).await.unwrap();
+        }
+        _ => {panic!("")}
+    }
 }
 
 fn main () {
@@ -65,12 +67,11 @@ fn main () {
     let config_file = std::fs::File::open(&opts.collectors_config).unwrap();
     let config:Config = serde_json::from_reader(config_file).unwrap();
     let collectors = config.to_collectors().into_iter()
-        .filter_map(|c| {
+        .filter(|c| {
             match &opts.collector_id{
-                None => {Some(c)}
+                None => {true}
                 Some(id) => {
-                    if id.as_str()==c.id { Some(c)}
-                    else {None}
+                    id.as_str()==c.id
                 }
             }
         }).collect::<Vec<Collector>>();
@@ -85,39 +86,17 @@ fn main () {
     let conn = DbConnection::new(&db_url);
     conn.insert_collectors(&collectors);
 
-    let kafka: Box<KafkaProducer>;
-    let kafka_producer = match &opts.kafka_broker {
-        None => { None }
-        Some(b) => {
-            let topic = &opts.kafka_topic.clone().unwrap_or("broker-new-items".to_string());
-            kafka = Box::new(KafkaProducer::new(  b.as_str(),  topic));
-            Some(kafka.as_ref())
-        }
-    };
-
     rt.block_on(async {
-        let rv_scraper = RouteViewsScraper{ update_mode: true };
-        let ris_scraper = RipeRisScraper{ update_mode: true };
 
-        let mut rv_futures = vec![];
-        let mut ris_futures = vec![];
+        let mut futures = vec![];
 
         collectors.iter().for_each(|c| {
-            match c.project.as_str() {
-                "routeviews" => {
-                    rv_futures.push(rv_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer));
-                }
-                "riperis" => {
-                    ris_futures.push(ris_scraper.scrape(c, opts.latest.clone(), Some(&conn), kafka_producer));
-                }
-                _ => {panic!("")}
-            }
+            futures.push(run_scraper(c, opts.latest, &conn))
         });
 
         info!("start scraping for {} collectors", &collectors.len());
 
-        join_all(rv_futures).await;
-        join_all(ris_futures).await;
+        join_all(futures).await;
     });
 }
 

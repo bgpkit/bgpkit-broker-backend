@@ -1,8 +1,6 @@
 use std::env;
-use actix_web::web::to;
 use clap::Clap;
 use diesel::RunQueryDsl;
-use dotenv;
 use futures::StreamExt;
 use log::info;
 use bgpkit_broker_backend::db::DbConnection;
@@ -89,7 +87,7 @@ fn main () {
                         .set(&item)
                         .execute(&conn.conn).unwrap();
                 }
-            }).await;
+            }).await.unwrap();
             info!("updated {} out of {} files' sizes", total_files, batch_size);
         }
     });

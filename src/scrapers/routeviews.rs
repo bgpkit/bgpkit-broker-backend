@@ -1,10 +1,9 @@
 use crate::scrapers::*;
 use log::info;
 use futures::future::join_all;
-use crate::kafka::KafkaProducer;
 
 pub struct RouteViewsScraper{
-    pub update_mode: bool
+    pub update_mode: bool,
 }
 
 impl RouteViewsScraper {
@@ -12,7 +11,7 @@ impl RouteViewsScraper {
     /// `scrape` implementation for RouteViews.
     ///
     /// Example of RouteViews2: http://archive.routeviews.org/bgpdata/
-    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError> {
+    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>) -> Result<(), ScrapeError> {
         info!("scraping RouteViews collector {}; only latest month = {}", collector.id, &latest);
 
         let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
@@ -36,8 +35,8 @@ impl RouteViewsScraper {
             let updates_url = format!("{}/{}/UPDATES", collector.url, month);
 
             [
-                self.scrape_items(ribs_url, month.to_string(), "rib".to_string(), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db, kafka),
-                self.scrape_items(updates_url, month.to_string(), "update".to_string(), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db, kafka)
+                self.scrape_items(ribs_url, month.to_string(), "rib".to_string(), collector.id.clone(), rib_link_pattern.clone(), "rib".to_string(), db),
+                self.scrape_items(updates_url, month.to_string(), "update".to_string(), collector.id.clone(), updates_link_pattern.clone(), "update".to_string(), db)
             ]
         }).collect();
 
@@ -45,7 +44,7 @@ impl RouteViewsScraper {
         Ok( () )
     }
 
-    async fn scrape_items(&self, url: String, month: String, data_type_str: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError>{
+    async fn scrape_items(&self, url: String, month: String, data_type_str: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         info!("scraping data for {} {}-{} ... ", collector_id.as_str(), &month, &data_type_str);
         let body = reqwest::get(&url).await?.text().await?;
         info!("     download for {} {}-{} finished ", collector_id.as_str(), &month, &data_type_str);
@@ -90,13 +89,6 @@ impl RouteViewsScraper {
 
             let inserted = conn.insert_items(&to_insert);
             info!("tried to insert {} items, actually inserted {} items", to_insert.len(), inserted.len());
-
-            if let Some(producer) = kafka {
-                if inserted.len()>0 {
-                    info!("   announcing new items to kafka ...");
-                    producer.produce(&inserted).await;
-                }
-            }
         }
 
 
@@ -118,6 +110,6 @@ mod tests {
             url: "http://archive.routeviews.org/bgpdata".to_string()
         };
         let rv_scraper = RouteViewsScraper{ update_mode: true };
-        let _ = rv_scraper.scrape(&rv_collector, true, None, None).await;
+        let _ = rv_scraper.scrape(&rv_collector, true, None).await;
     }
 }

@@ -2,7 +2,6 @@ use crate::scrapers::*;
 use log::info;
 use futures::future::join_all;
 use tokio;
-use crate::kafka::KafkaProducer;
 
 pub struct RipeRisScraper {
     pub update_mode: bool
@@ -10,7 +9,7 @@ pub struct RipeRisScraper {
 
 impl RipeRisScraper {
     /// `scrape` implementation for RIPE RIS.
-    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError> {
+    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>) -> Result<(), ScrapeError> {
         info!("scraping RIPE RIS collector {}; only latest month = {}", collector.id, &latest);
 
         let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
@@ -39,7 +38,6 @@ impl RipeRisScraper {
                 rib_link_pattern.clone(),
                 collector.id.clone(),
                 db,
-                kafka
             ))
         }
 
@@ -47,7 +45,7 @@ impl RipeRisScraper {
         Ok( () )
     }
 
-    async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>, kafka: Option<&KafkaProducer>) -> Result<(), ScrapeError>{
+    async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         info!("scraping data for {} {} ...", collector_id.as_str(), &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("   download   for {} finished", &month);
@@ -105,13 +103,6 @@ impl RipeRisScraper {
 
             let inserted = conn.insert_items(&to_insert);
             info!("tried to insert {} items, actually inserted {} items", to_insert.len(), inserted.len());
-
-            if let Some(producer) = kafka {
-                if inserted.len()>0 {
-                    info!("   announcing new items to kafka ...");
-                    producer.produce(&inserted).await;
-                }
-            }
         }
 
         info!("scraping data for {} ... finished", &month);
@@ -142,7 +133,7 @@ mod tests {
             url: "http://data.ris.ripe.net/rrc00".to_string()
         };
         let ris_scraper = RipeRisScraper{ update_mode: true};
-        ris_scraper.scrape(&ris_collector, true, Some(&conn), None).await.unwrap();
+        ris_scraper.scrape(&ris_collector, true, Some(&conn)).await.unwrap();
     }
 
 }
