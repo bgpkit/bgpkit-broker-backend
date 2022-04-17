@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS items
         ON DELETE NO ACTION
 );
 
--- CREATE INDEX IF NOT EXISTS "timestamp"
---     ON items USING brin
---         (ts_start)
---     TABLESPACE pg_default;
+CREATE INDEX IF NOT EXISTS "timestamp"
+    ON items USING brin
+        (ts_start)
+    TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS collector_id
     ON items USING btree
