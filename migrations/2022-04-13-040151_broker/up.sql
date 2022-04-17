@@ -35,6 +35,7 @@ CREATE INDEX IF NOT EXISTS collector_id
 CREATE MATERIALIZED VIEW IF NOT EXISTS latest_times
 AS
 SELECT items.ts_start AS "timestamp",
+       (now() AT TIME ZONE 'utc'::text) - items.ts_start AS delay,
        items.collector_id,
        items.data_type,
        collectors.project,
