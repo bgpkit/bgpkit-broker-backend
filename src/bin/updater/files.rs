@@ -90,12 +90,10 @@ fn main () {
 
         let mut stream = futures::stream:: iter(&collectors)
             .map(|c| run_scraper(c, opts.latest, &conn))
-            .buffer_unordered(10);
+            .buffer_unordered(1);
 
         info!("start scraping for {} collectors", &collectors.len());
-        loop  {
-            stream.next().await;
-        }
+        while let Some(_) = stream.next().await  { }
     });
 }
 

@@ -44,8 +44,8 @@ impl DbConnection {
         let end_ts = start_ts + chrono::Duration::days(31);
         items
             .filter(collector_id.eq(collector))
-            .filter(ts_start.ge(start_ts.timestamp()))
-            .filter(ts_start.le(end_ts.timestamp()))
+            .filter(ts_start.ge(start_ts))
+            .filter(ts_start.le(end_ts))
             .select(count(url)).first::<i64>(&self.conn).unwrap()
     }
 
@@ -61,8 +61,8 @@ impl DbConnection {
         let end_ts = start_ts + chrono::Duration::days(31);
         HashSet::from_iter(items
             .filter(collector_id.eq(collector))
-            .filter(ts_start.ge(start_ts.timestamp()))
-            .filter(ts_start.le(end_ts.timestamp()))
+            .filter(ts_start.ge(start_ts))
+            .filter(ts_start.le(end_ts))
             .select(url).load::<String>(&self.conn).unwrap().into_iter())
     }
 

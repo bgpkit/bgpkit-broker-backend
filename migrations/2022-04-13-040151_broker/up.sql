@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS collectors
 
 CREATE TABLE IF NOT EXISTS items
 (
-    ts_start bigint NOT NULL,
-    ts_end bigint NOT NULL,
+    ts_start timestamp NOT NULL,
+    ts_end timestamp NOT NULL,
     collector_id text NOT NULL,
     data_type text NOT NULL,
     url text NOT NULL,
@@ -22,9 +22,14 @@ CREATE TABLE IF NOT EXISTS items
         ON DELETE NO ACTION
 );
 
-CREATE INDEX IF NOT EXISTS "timestamp"
-    ON items USING brin
-        (ts_start)
+-- CREATE INDEX IF NOT EXISTS "timestamp"
+--     ON items USING brin
+--         (ts_start)
+--     TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS collector_id
+    ON items USING btree
+        (collector_id)
     TABLESPACE pg_default;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS latest_times

@@ -57,7 +57,7 @@ impl RouteViewsScraper {
     async fn scrape_items(&self, url: String, month: String, data_type_str: String, collector_id: String, pattern: Regex, data_type: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         info!("scraping data for {} {}-{} ... ", collector_id.as_str(), &month, &data_type_str);
         let body = reqwest::get(&url).await?.text().await?;
-        info!("     download for {} {}-{} finished ", collector_id.as_str(), &month, &data_type_str);
+        info!("    download for {} {}-{} finished ", collector_id.as_str(), &month, &data_type_str);
 
         let collector_clone = collector_id.clone();
 
@@ -68,11 +68,11 @@ impl RouteViewsScraper {
                 let url = format!("{}/{}", &url, cap[1].to_owned());
                 let updates_link_pattern: Regex = Regex::new(r#".*(........\.....)\.bz2.*"#).unwrap();
                 let time_str = updates_link_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
-                let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap().timestamp();
+                let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap();
                 let interval = match data_type.as_str(){
-                    "rib" => 0,
-                    "update" => 15*60,
-                    _ => 0
+                    "rib" => chrono::Duration::seconds(0),
+                    "update" => chrono::Duration::seconds(15*60),
+                    _ => panic!("unknown data type {}", data_type)
                 };
                 Item {
                     ts_start: unix_time,
@@ -86,7 +86,7 @@ impl RouteViewsScraper {
         }).await.unwrap();
 
         if let Some(conn) = db {
-            info!("   insert to db for {} {}...", collector_clone.as_str(), &month);
+            info!("    insert to db for {} {}...", collector_clone.as_str(), &month);
 
             let to_insert = if self.update_mode {
 
@@ -98,7 +98,7 @@ impl RouteViewsScraper {
             };
 
             let inserted = conn.insert_items(&to_insert);
-            info!("tried to insert {} items, actually inserted {} items", to_insert.len(), inserted.len());
+            info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, to_insert.len(), inserted.len());
         }
 
 

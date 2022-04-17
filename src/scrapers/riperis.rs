@@ -57,7 +57,7 @@ impl RipeRisScraper {
     async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         info!("scraping data for {} {} ...", collector_id.as_str(), &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
-        info!("   download   for {} finished", &month);
+        info!("    download   for {} finished", &month);
 
         let collector_clone = collector_id.clone();
 
@@ -68,11 +68,11 @@ impl RipeRisScraper {
                 let url = format!("{}/{}",url, cap[1].to_owned()).replace("http", "https");
                 let updates_link_pattern: Regex = Regex::new(r#".*(........\.....)\.gz.*"#).unwrap();
                 let time_str = updates_link_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
-                let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap().timestamp();
+                let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap();
                 data_items.push(
                     Item {
                         ts_start: unix_time,
-                        ts_end: unix_time + 5*60,
+                        ts_end: unix_time + chrono::Duration::seconds(5*60),
                         url: url.clone(),
                         file_size: 0,
                         collector_id: collector_id.clone(),
@@ -85,7 +85,7 @@ impl RipeRisScraper {
                 let url = format!("{}/{}",url, cap[1].to_owned()).replace("http", "https");
                 let url_time_pattern: Regex = Regex::new(r#".*(........\.....)\.gz.*"#).unwrap();
                 let time_str = url_time_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
-                let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap().timestamp();
+                let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap();
                 data_items.push(
                     Item {
                         ts_start: unix_time,
@@ -100,7 +100,7 @@ impl RipeRisScraper {
         }).await.unwrap();
 
         if let Some(conn) = db {
-            info!("   insert to db for {} {}...", collector_clone.as_str(), &month);
+            info!("    insert to db for {} {}...", collector_clone.as_str(), &month);
 
             let to_insert = if self.update_mode {
                 let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
@@ -111,7 +111,7 @@ impl RipeRisScraper {
             };
 
             let inserted = conn.insert_items(&to_insert);
-            info!("tried to insert {} items, actually inserted {} items", to_insert.len(), inserted.len());
+            info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, to_insert.len(), inserted.len());
         }
 
         info!("scraping data for {} ... finished", &month);

@@ -12,9 +12,9 @@ path = "src/bin/updater/files.rs"
 name = "bgpkit-broker-size-checker"
 path = "src/bin/updater/sizes.rs"
 
-[[bin]]
-name = "bgpkit-broker-api"
-path = "src/bin/api/main.rs"
+# [[bin]]
+# name = "bgpkit-broker-api"
+# path = "src/bin/api/main.rs"
 
 [dependencies]
 
@@ -37,9 +37,9 @@ serde_json = {version = "1"}
 futures = "0.3.21"
 
 # database dependency
-diesel = {version="1.4.4", features=["postgres", "r2d2", "serde_json"]}
+diesel = {version="1.4.4", features=["postgres", "r2d2", "serde_json", "chrono"]}
 dotenv = "0.15.0"
 
 # api
-actix-web = "3"
-r2d2="0.8"
+# actix-web = "3"
+# r2d2="0.8"

@@ -8,8 +8,8 @@ table! {
 
 table! {
     items (url) {
-        ts_start -> Int8,
-        ts_end -> Int8,
+        ts_start -> Timestamp,
+        ts_end -> Timestamp,
         collector_id -> Text,
         data_type -> Text,
         url -> Text,

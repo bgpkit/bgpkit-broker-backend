@@ -14,7 +14,7 @@
       "collectors": [
         {
           "id": "route-views2",
-          "url": "https://archive.routeviews.org/bgpdata"
+          "url": "http://archive.routeviews.org/bgpdata"
         }
       ]
     }
