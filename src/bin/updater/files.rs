@@ -88,9 +88,14 @@ fn main () {
 
     rt.block_on(async {
 
+        let buffer_size = match opts.latest {
+            true => 20,
+            false => 1,
+        };
+
         let mut stream = futures::stream:: iter(&collectors)
             .map(|c| run_scraper(c, opts.latest, &conn))
-            .buffer_unordered(1);
+            .buffer_unordered(buffer_size);
 
         info!("start scraping for {} collectors", &collectors.len());
         while let Some(_) = stream.next().await  { }
