@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-use std::iter::FromIterator;
 use crate::scrapers::*;
 use log::info;
 use futures::future::join_all;
@@ -93,12 +91,7 @@ impl RipeRisScraper {
             info!("   insert to db for {}...", &month);
             let new_items = if verify{
                 let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
-                let new_urls = data_items.iter().filter(|x| !current_month_items.contains(&x.url))
-                    .map(|x| x.url.clone())
-                    .collect::<Vec<String>>();
-                let verified_urls: HashSet<String> = HashSet::from_iter(verify_urls(&new_urls).await.into_iter());
-                info!("    total {} new urls, {} verified working", new_urls.len(), verified_urls.len());
-                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url) && verified_urls.contains(&x.url))
+                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url))
                     .collect::<Vec<Item>>()
             } else {
                 data_items
