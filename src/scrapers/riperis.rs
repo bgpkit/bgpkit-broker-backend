@@ -1,3 +1,4 @@
+use chrono::{Datelike, Utc};
 use crate::scrapers::*;
 use log::info;
 use futures::StreamExt;
@@ -12,30 +13,42 @@ impl RipeRisScraper {
     pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>) -> Result<(), ScrapeError> {
         info!("scraping RIPE RIS collector {}; only latest month = {}", collector.id, &latest);
 
-        let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
-        let rib_link_pattern: Regex = Regex::new(r#"<a href="(b?view\..*\.gz)">.*"#).unwrap();
-        let updates_link_pattern: Regex = Regex::new(r#"<a href="(updates\..*\.gz)">.*"#).unwrap();
-
-        let body = reqwest::get(collector.url.as_str()).await?.text().await?;
-        let mut months: Vec<String> = month_link_pattern.captures_iter(body.as_str()).filter_map(|cap|{
-            let month = cap[1].to_owned();
-            if !latest {
-                if let Some(conn) = db {
-                    if conn.count_records_in_month(collector.id.as_str(), month.as_str()) > 0 {
-                        info!("skip month {} for {} in bootstrap mode", month.as_str(), collector.id.as_str());
-                        return None
+        let months = if latest {
+            let ts = Utc::now();
+            let ts2 = ts - chrono::Duration::days(1);
+            if ts.month() == ts2.month() {
+                vec![
+                    format!("{}.{:02}",ts.year(), ts.month())
+                ]
+            } else {
+                // on borderline date, i.e. on the end of a month
+                // we check both current and previous month to make sure we don't miss anything
+                vec![
+                    format!("{}.{:02}",ts.year(), ts2.month()),
+                    format!("{}.{:02}",ts.year(), ts.month())
+                ]
+            }
+        } else {
+            let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
+            let body = reqwest::get(collector.url.as_str()).await?.text().await?;
+            month_link_pattern.captures_iter(body.as_str()).filter_map(|cap|{
+                let month = cap[1].to_owned();
+                if !latest {
+                    if let Some(conn) = db {
+                        if conn.count_records_in_month(collector.id.as_str(), month.as_str()) > 0 {
+                            info!("skip month {} for {} in bootstrap mode", month.as_str(), collector.id.as_str());
+                            return None
+                        }
                     }
                 }
-            }
-            Some(month)
-        }).collect();
-
-        if latest {
-            // take the latest 2 months for scraping.
-            months = months.into_iter().take(2).collect();
-        }
+                Some(month)
+            }).collect()
+        };
 
         info!("total of {} months to scrape", months.len());
+
+        let rib_link_pattern: Regex = Regex::new(r#"<a href="(b?view\..*\.gz)">.*"#).unwrap();
+        let updates_link_pattern: Regex = Regex::new(r#"<a href="(updates\..*\.gz)">.*"#).unwrap();
 
         let mut stream = futures::stream::iter(months.clone()).map(|month| {
             let url = format!("{}/{}", collector.url, month);
@@ -57,7 +70,7 @@ impl RipeRisScraper {
     async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         info!("scraping data for {} {} ...", collector_id.as_str(), &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
-        info!("    download   for {} finished", &month);
+        info!("    download for {} {} finished ", collector_id.as_str(), &month);
 
         let collector_clone = collector_id.clone();
 
