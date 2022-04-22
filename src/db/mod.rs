@@ -77,7 +77,7 @@ impl DbConnection {
 
     pub fn insert_items(&self, entries: &Vec<Item>) -> Vec<Item> {
         use schema::items::dsl::*;
-        let chunks = entries.chunks(CHUNK_SIZE/4);
+        let chunks = entries.chunks(CHUNK_SIZE/7);
         let chunks_len = chunks.len();
         let mut inserted_items: Vec<Item> = vec![];
         for (i, chunk) in chunks.enumerate() {
