@@ -13,7 +13,8 @@ table! {
         collector_id -> Text,
         data_type -> Text,
         url -> Text,
-        file_size -> Int8,
+        rough_size -> Int8,
+        exact_size -> Int8,
     }
 }
 

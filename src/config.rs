@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::models::Collector as BCollector;
+use crate::db::models::Collector as BCollector;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {

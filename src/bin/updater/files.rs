@@ -4,7 +4,7 @@ use log::info;
 use futures::StreamExt;
 use bgpkit_broker_backend::config::Config;
 use bgpkit_broker_backend::db::DbConnection;
-use bgpkit_broker_backend::models::Collector;
+use bgpkit_broker_backend::db::models::Collector;
 use bgpkit_broker_backend::scrapers::{RipeRisScraper, RouteViewsScraper};
 
 #[derive(Clap)]

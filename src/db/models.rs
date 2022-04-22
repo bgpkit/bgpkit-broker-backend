@@ -34,5 +34,6 @@ pub struct Item {
     pub collector_id: String,
     pub data_type: String,
     pub url: String,
-    pub file_size: i64,
+    pub rough_size: i64,
+    pub exact_size: i64,
 }

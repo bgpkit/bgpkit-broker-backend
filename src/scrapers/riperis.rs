@@ -47,16 +47,11 @@ impl RipeRisScraper {
 
         info!("total of {} months to scrape", months.len());
 
-        let rib_link_pattern: Regex = Regex::new(r#"<a href="(b?view\..*\.gz)">.*"#).unwrap();
-        let updates_link_pattern: Regex = Regex::new(r#"<a href="(updates\..*\.gz)">.*"#).unwrap();
-
         let mut stream = futures::stream::iter(months.clone()).map(|month| {
             let url = format!("{}/{}", collector.url, month);
             self.scrape_month(
                 url,
                 month,
-                updates_link_pattern.clone(),
-                rib_link_pattern.clone(),
                 collector.id.clone(),
                 db,
             )
@@ -67,49 +62,42 @@ impl RipeRisScraper {
         Ok( () )
     }
 
-    async fn scrape_month(&self, url: String, month: String, update_pattern: Regex, rib_pattern: Regex, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
+    async fn scrape_month(&self, url: String, month: String, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
         info!("scraping data for {} {} ...", collector_id.as_str(), &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("    download for {} {} finished ", collector_id.as_str(), &month);
 
         let collector_clone = collector_id.clone();
 
-        let data_items =
+        let data_items: Vec<Item> =
         tokio::task::spawn_blocking(move || {
-            let mut data_items = vec![];
-            update_pattern.captures_iter(body.as_str()).for_each(|cap|{
-                let url = format!("{}/{}",url, cap[1].to_owned()).replace("http", "https");
+            let items = extract_link_size(body.as_str());
+            items.iter().map(|(link, size)|{
+                let url = format!("{}/{}",url, link).replace("http", "https");
                 let updates_link_pattern: Regex = Regex::new(r#".*(........\.....)\.gz.*"#).unwrap();
                 let time_str = updates_link_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap();
-                data_items.push(
-                    Item {
+                match link.contains("update") {
+                    true => Item {
                         ts_start: unix_time,
                         ts_end: unix_time + chrono::Duration::seconds(5*60),
                         url: url.clone(),
-                        file_size: 0,
+                        rough_size: size.clone(),
+                        exact_size: 0,
                         collector_id: collector_id.clone(),
                         data_type: "update".to_string(),
-                    }
-                );
-            });
-
-            rib_pattern.captures_iter(body.as_str()).for_each(|cap|{
-                let url = format!("{}/{}",url, cap[1].to_owned()).replace("http", "https");
-                let url_time_pattern: Regex = Regex::new(r#".*(........\.....)\.gz.*"#).unwrap();
-                let time_str = url_time_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
-                let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap();
-                data_items.push(
-                    Item {
+                    },
+                    false => Item {
                         ts_start: unix_time,
                         ts_end: unix_time,
                         url: url.clone(),
-                        file_size: 0,
+                        rough_size: size.clone(),
+                        exact_size: 0,
                         collector_id: collector_id.clone(),
                         data_type: "rib".to_string(),
-                    });
-            });
-            data_items
+                    }
+                }
+            }).collect()
         }).await.unwrap();
 
         if let Some(conn) = db {

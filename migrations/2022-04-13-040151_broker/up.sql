@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS items
     collector_id text NOT NULL,
     data_type text NOT NULL,
     url text NOT NULL,
-    file_size bigint NOT NULL,
+    rough_size bigint NOT NULL,
+    exact_size bigint NOT NULL,
     CONSTRAINT items_pkey PRIMARY KEY (url),
     CONSTRAINT items_collector_id_fkey FOREIGN KEY (collector_id)
         REFERENCES collectors (id) MATCH SIMPLE
@@ -38,6 +39,8 @@ SELECT items.ts_start AS "timestamp",
        (now() AT TIME ZONE 'utc'::text) - items.ts_start AS delay,
        items.collector_id,
        items.data_type,
+       items.rough_size,
+       items.exact_size,
        collectors.project,
        collectors.url AS collector_url,
        items.url AS item_url
