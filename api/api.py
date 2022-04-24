@@ -1,11 +1,63 @@
+from datetime import datetime
+from typing import List
+
 import arrow as arrow
 import fastapi
+import typing
+import uvicorn
 from arrow import ParserError
 from fastapi import Query
 from pony.orm import *
+from pony.orm import Database, Required, PrimaryKey
+from pydantic import BaseModel, validator
 from starlette.middleware.cors import CORSMiddleware
 
-from models import *
+db = Database()
+db.bind(provider="postgres", user="bgpkit_admin", host="db.broker.bgpkit.com", database="bgpkit_stage")
+# set_sql_debug(True)
+
+
+class Item(db.Entity):
+    _table_ = "items"
+    ts_start = Required(datetime, sql_type='timestamp without time zone')
+    ts_end = Required(datetime, sql_type='timestamp without time zone')
+    collector_id = Required(str)
+    data_type = Required(str)
+    url = PrimaryKey(str)
+    rough_size = Required(int)
+    exact_size = Required(int)
+
+
+class ItemModel(BaseModel):
+    ts_start: datetime
+    ts_end: datetime
+    collector_id: str
+    data_type: str
+    url: str
+    rough_size: int
+    exact_size: int
+
+    @validator('ts_start', pre=True)
+    def validate_ts_start(cls, value: datetime):
+        return value.timestamp()
+
+    @validator('ts_end', pre=True)
+    def validate_ts_end(cls, value: datetime):
+        return value.timestamp()
+
+    class Config:
+        orm_mode = True
+
+
+class SearchResultModel(BaseModel):
+    count: typing.Optional[int]
+    page: typing.Optional[int]
+    page_size: typing.Optional[int]
+    error: typing.Optional[str]
+    data: typing.Optional[List[ItemModel]]
+
+
+db.generate_mapping(create_tables=False)
 
 description = """
 
@@ -129,3 +181,12 @@ async def search_mrt_files(
         result = [ItemModel.from_orm(p) for p in query]
 
     return SearchResultModel(count=len(result), page=page, page_size=page_size, data=result, error=None)
+
+
+def serve():
+    """Serve the web application."""
+    uvicorn.run(app)
+
+
+if __name__ == "__main__":
+    serve()
