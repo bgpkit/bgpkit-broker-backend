@@ -5,7 +5,7 @@
       "collectors": [
         {
           "id": "rrc00",
-          "url": "http://data.ris.ripe.net/rrc00"
+          "url": "https://data.ris.ripe.net/rrc00"
         }
       ]
     },

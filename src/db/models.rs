@@ -25,21 +25,15 @@ impl DataType {
     }
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Queryable, Insertable, Identifiable, Eq, PartialEq, AsChangeset)]
 #[table_name="items"]
+#[primary_key(url)]
 pub struct Item {
+    pub ts_start: chrono::NaiveDateTime,
+    pub ts_end: chrono::NaiveDateTime,
     pub collector_id: String,
-    pub timestamp: i64,
     pub data_type: String,
     pub url: String,
-}
-
-#[derive(Debug, Queryable, Serialize, Deserialize)]
-pub struct UpdateTime {
-    pub timestamp: i64,
-    pub collector_id: String,
-    pub data_type: String,
-    pub project: String,
-    pub collector_url: String,
-    pub item_url: String,
+    pub rough_size: i64,
+    pub exact_size: i64,
 }

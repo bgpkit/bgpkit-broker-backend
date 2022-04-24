@@ -7,22 +7,14 @@ table! {
 }
 
 table! {
-    latest_times (timestamp, collector_id, data_type) {
-        timestamp -> Int8,
+    items (url) {
+        ts_start -> Timestamp,
+        ts_end -> Timestamp,
         collector_id -> Text,
-        data_type -> Text,
-        project -> Text,
-        collector_url -> Text,
-        item_url -> Text,
-    }
-}
-
-table! {
-    items (timestamp, collector_id, data_type) {
-        collector_id -> Text,
-        timestamp -> Int8,
         data_type -> Text,
         url -> Text,
+        rough_size -> Int8,
+        exact_size -> Int8,
     }
 }
 

@@ -6,21 +6,26 @@ edition = "2018"
 
 [[bin]]
 name = "bgpkit-broker-updater"
-path = "src/bin/updater/main.rs"
+path = "src/bin/updater/files.rs"
 
 [[bin]]
-name = "bgpkit-broker-api"
-path = "src/bin/api/main.rs"
+name = "bgpkit-broker-size-checker"
+path = "src/bin/updater/sizes.rs"
+
+# [[bin]]
+# name = "bgpkit-broker-api"
+# path = "src/bin/api/main.rs"
 
 [dependencies]
 
-reqwest = "0.11"
+reqwest = {version="0.11", features=["blocking"]}
 regex="1"
 chrono="0.4"
 env_logger="0.9"
 log="0.4.14"
 tokio = { version = "1", features = ["full"] }
 num_cpus = "1.13.0"
+scraper="0.12.0"
 
 # cli dependency
 clap = "3.0.0-beta.4"
@@ -30,15 +35,12 @@ indicatif = "0.15"
 serde = {version = "1", features = ["derive"]}
 serde_json = {version = "1"}
 
-futures = "0.3"
+futures = "0.3.21"
 
 # database dependency
-diesel = {version="1.4.4", features=["postgres", "r2d2"]}
+diesel = {version="1.4.4", features=["postgres", "r2d2", "serde_json", "chrono"]}
 dotenv = "0.15.0"
 
-# kafka
-rdkafka = "0.26"
-
 # api
-actix-web = "3"
-r2d2="0.8"
+# actix-web = "3"
+# r2d2="0.8"
