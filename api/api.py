@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 import arrow as arrow
@@ -55,6 +55,32 @@ class SearchResultModel(BaseModel):
     page_size: typing.Optional[int]
     error: typing.Optional[str]
     data: typing.Optional[List[ItemModel]]
+
+
+class Latest(db.Entity):
+    _table_ = "latest_times"
+    timestamp = Required(datetime, sql_type='timestamp without time zone')
+    delay = Required(timedelta, sql_type='timestamp without time zone')
+    collector_id = Required(str)
+    data_type = Required(str)
+    item_url = PrimaryKey(str)
+    rough_size = Required(int)
+    exact_size = Required(int)
+    collector_url = Required(str)
+
+
+class LatestModel(BaseModel):
+    timestamp: datetime
+    delay: timedelta
+    collector_id: str
+    data_type: str
+    item_url: str
+    rough_size: int
+    exact_size: int
+    collector_url: str
+
+    class Config:
+        orm_mode = True
 
 
 db.generate_mapping(create_tables=False)
@@ -181,6 +207,15 @@ async def search_mrt_files(
         result = [ItemModel.from_orm(p) for p in query]
 
     return SearchResultModel(count=len(result), page=page, page_size=page_size, data=result, error=None)
+
+
+@app.get('/latest', response_model=List[LatestModel])
+async def latest_items():
+    with db_session:
+        query = Latest.select()
+        result = [LatestModel.from_orm(p) for p in query]
+        return result
+
 
 
 def serve():
