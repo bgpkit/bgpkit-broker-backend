@@ -52,6 +52,11 @@ FROM ( SELECT max(items_1.ts_start) AS ts_start,
          JOIN collectors ON nested.collector_id = collectors.id
          JOIN items ON nested.ts_start = items.ts_start AND nested.collector_id = items.collector_id AND items.data_type = nested.data_type;
 
+CREATE UNIQUE INDEX IF NOT EXISTS item_url
+    ON latest_times USING btree
+        (item_url)
+    TABLESPACE pg_default;
+
 ALTER TABLE IF EXISTS collectors
     OWNER to bgpkit_admin;
 
