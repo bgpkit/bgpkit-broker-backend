@@ -185,7 +185,7 @@ async def search_mrt_files(
 
 def serve():
     """Serve the web application."""
-    uvicorn.run(app)
+    uvicorn.run(app, host="0.0.0.0", port=18888)
 
 
 if __name__ == "__main__":
