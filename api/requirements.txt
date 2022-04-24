@@ -1,0 +1,8 @@
+# to install on M1 Mac, try the following environment with openssl installed via brew
+# echo 'export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"' >> ~/.zshrc
+# echo 'export LIBRARY_PATH=$LIBRARY_PATH:/opt/homebrew/opt/openssl@3/lib/' >> ~/.zshrc
+psycopg2
+pony~=0.7
+fastapi~=0.72.0
+uvicorn
+arrow
