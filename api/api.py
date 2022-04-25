@@ -179,7 +179,6 @@ async def search_mrt_files(
                     end = arrow.get(int(ts_end)).datetime
                 else:
                     end = arrow.get(ts_end).to("utc").datetime
-                print(end)
                 query = query.filter(lambda i: i.ts_start <= end)
             except ParserError as e:
                 return SearchResultModel(error=f"failed to parse ts_end time string: {e}")
@@ -189,7 +188,6 @@ async def search_mrt_files(
                     start = arrow.get(int(ts_start)).datetime
                 else:
                     start = arrow.get(ts_start).datetime
-                print(start)
                 query = query.filter(lambda i: i.ts_end >= start)
             except ParserError as e:
                 return SearchResultModel(error=f"failed to parse ts_start time string: {e}")
@@ -207,13 +205,12 @@ async def search_mrt_files(
 
         if collector_id:
             query = query.filter(lambda i: i.collector_id == collector_id)
-        total = query.order_by(Item.ts_start).count()
 
         query = query.order_by(Item.ts_start).page(page, page_size)
 
         result = [ItemModel.from_orm(p) for p in query]
 
-    return SearchResultModel(count=total, page=page, page_size=page_size, data=result, error=None)
+    return SearchResultModel(count=len(result), page=page, page_size=page_size, data=result, error=None)
 
 
 @app.get('/latest', response_model=List[LatestModel])
