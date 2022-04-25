@@ -173,20 +173,26 @@ async def search_mrt_files(
     """
     with db_session:
         query = Item.select()
-        if ts_start:
-            try:
-                start = arrow.get(ts_start).to("utc").datetime
-                print(start)
-                query = query.filter(lambda i: i.ts_end >= start)
-            except ParserError as e:
-                return SearchResultModel(error=f"failed to parse ts_start time string: {e}")
         if ts_end:
             try:
-                end = arrow.get(ts_end).to("utc").datetime
+                if ts_start.isnumeric():
+                    end = arrow.get(int(ts_end)).datetime
+                else:
+                    end = arrow.get(ts_end).to("utc").datetime
                 print(end)
                 query = query.filter(lambda i: i.ts_start <= end)
             except ParserError as e:
                 return SearchResultModel(error=f"failed to parse ts_end time string: {e}")
+        if ts_start:
+            try:
+                if ts_start.isnumeric():
+                    start = arrow.get(int(ts_start)).datetime
+                else:
+                    start = arrow.get(ts_start).datetime
+                print(start)
+                query = query.filter(lambda i: i.ts_end >= start)
+            except ParserError as e:
+                return SearchResultModel(error=f"failed to parse ts_start time string: {e}")
 
         if data_type:
             query = query.filter(lambda i: i.data_type == data_type)
@@ -201,12 +207,13 @@ async def search_mrt_files(
 
         if collector_id:
             query = query.filter(lambda i: i.collector_id == collector_id)
+        total = query.order_by(Item.ts_start).count()
 
         query = query.order_by(Item.ts_start).page(page, page_size)
 
         result = [ItemModel.from_orm(p) for p in query]
 
-    return SearchResultModel(count=len(result), page=page, page_size=page_size, data=result, error=None)
+    return SearchResultModel(count=total, page=page, page_size=page_size, data=result, error=None)
 
 
 @app.get('/latest', response_model=List[LatestModel])
