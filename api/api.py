@@ -211,11 +211,28 @@ async def search_mrt_files(
 
 @app.get('/latest', response_model=List[LatestModel])
 async def latest_items():
+    """
+    ### Latest MRT Data Files
+
+    The `/latest` end point provides convenient lookup of the latest data available on the collectors.
+
+    ### Response
+
+    The endpoint returns information for each collector with the following fields:
+    - `timestamp`: the timestamp of the data file, in string format like "2019-08-24T14:15:22Z"
+    - `delay`: the number of seconds difference from the time of the latest file's timestamp to the time of the latest
+        data update
+    - `collector_id`: collector ID, e.g. `rrc00`, `route-views2`
+    - `data_type`: type of MRT data file: `update` or `rib`
+    - `item_url`: the URL of the file
+    - `collector_url`: the root URL of the collector
+    - `rough_size`: rough file size parsed from the archive site directly
+    - `exact_size`: exact file size queried directly to the file, potentially missing (i.e. size of `0`)
+    """
     with db_session:
         query = Latest.select()
         result = [LatestModel.from_orm(p) for p in query]
         return result
-
 
 
 def serve():
