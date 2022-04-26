@@ -55,14 +55,6 @@ class ItemModel(BaseModel):
     rough_size: int
     exact_size: int
 
-    @validator('ts_start', pre=True)
-    def validate_ts_start(cls, value: datetime):
-        return value.timestamp()
-
-    @validator('ts_end', pre=True)
-    def validate_ts_end(cls, value: datetime):
-        return value.timestamp()
-
     class Config:
         orm_mode = True
 
