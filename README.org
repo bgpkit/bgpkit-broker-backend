@@ -4,8 +4,8 @@ BGPKIT Broker Backend is the backend API and data collection implementation for
 the [[https://bgpkit.com/broker][BGPKIT Broker project]].
 
 Users can use this repository to deploy a BGPKIT Broker instance on their own
-equipment, and it **free for researchers and educators**! See more in [[#deployment][Deployment]]
-and [[#license][LICENSE]] sections.
+equipment, and it is free under MIT license! See more in [[#deployment][Deployment]] and [[#license][LICENSE]]
+sections.
 
 * Table of Content                                                      :TOC:
 - [[#bgpkit-broker-api][BGPKIT Broker API]]
