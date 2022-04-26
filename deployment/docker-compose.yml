@@ -19,7 +19,7 @@ services:
 
   bgpkit-broker-api:
     container_name: bgpkit-broker-api
-    entrypoint: bash -c 'while !</dev/tcp/postgres/5432; do sleep 60; echo "wait for postgres"; done; service cron start; /usr/local/bin/bgpkit-broker-api'
+    entrypoint: bash -c 'while !</dev/tcp/postgres/5432; do sleep 60; echo "wait for postgres"; done; service cron start; bash /usr/local/bin/start_api.sh'
     ports:
       - "8080:8080"
     build:
