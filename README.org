@@ -28,59 +28,72 @@ following REST call to the BGPKIT Broker API to gather the full list of data
 files that may contain the relevant updates for the event:
 
 #+begin_src restclient :exports both
-GET https://api.broker.bgpkit.com/v1/search?start_ts=1633362000&end_ts=1633363200&data_type=update&page_size=5&page=1
+GET https://api.broker.bgpkit.com/v2/search?ts_start=1633362000&ts_end=1633363200&data_type=update&page_size=5&page=1
 #+end_src
 
 #+RESULTS:
 #+BEGIN_SRC js
 {
-  "data": {
-    "count": 5,
-    "current_page": 1,
-    "items": [
-      {
-        "collector_id": "rrc00",
-        "data_type": "update",
-        "timestamp": 1633362000,
-        "url": "http://data.ris.ripe.net/rrc00/2021.10/updates.20211004.1540.gz"
-      },
-      {
-        "collector_id": "rrc01",
-        "data_type": "update",
-        "timestamp": 1633362000,
-        "url": "http://data.ris.ripe.net/rrc01/2021.10/updates.20211004.1540.gz"
-      },
-      {
-        "collector_id": "rrc03",
-        "data_type": "update",
-        "timestamp": 1633362000,
-        "url": "http://data.ris.ripe.net/rrc03/2021.10/updates.20211004.1540.gz"
-      },
-      {
-        "collector_id": "rrc04",
-        "data_type": "update",
-        "timestamp": 1633362000,
-        "url": "http://data.ris.ripe.net/rrc04/2021.10/updates.20211004.1540.gz"
-      },
-      {
-        "collector_id": "rrc05",
-        "data_type": "update",
-        "timestamp": 1633362000,
-        "url": "http://data.ris.ripe.net/rrc05/2021.10/updates.20211004.1540.gz"
-      }
-    ],
-    "page_size": 5,
-    "total_pages": 37
-  },
-  "error": null
+  "count": 5,
+  "page": 1,
+  "page_size": 5,
+  "error": null,
+  "data": [
+    {
+      "ts_start": "2021-10-04T15:30:00+00:00",
+      "ts_end": "2021-10-04T15:45:00+00:00",
+      "collector_id": "route-views2",
+      "data_type": "update",
+      "url": "http://archive.routeviews.org/bgpdata/2021.10/UPDATES/updates.20211004.0830.bz2",
+      "rough_size": 1153433,
+      "exact_size": 0
+    },
+    {
+      "ts_start": "2021-10-04T15:30:00+00:00",
+      "ts_end": "2021-10-04T15:45:00+00:00",
+      "collector_id": "route-views3",
+      "data_type": "update",
+      "url": "http://archive.routeviews.org/route-views3/bgpdata/2021.10/UPDATES/updates.20211004.0830.bz2",
+      "rough_size": 8388608,
+      "exact_size": 0
+    },
+    {
+      "ts_start": "2021-10-04T15:30:00+00:00",
+      "ts_end": "2021-10-04T15:45:00+00:00",
+      "collector_id": "route-views5",
+      "data_type": "update",
+      "url": "http://archive.routeviews.org/route-views5/bgpdata/2021.10/UPDATES/updates.20211004.0830.bz2",
+      "rough_size": 22528,
+      "exact_size": 0
+    },
+    {
+      "ts_start": "2021-10-04T15:30:00+00:00",
+      "ts_end": "2021-10-04T15:45:00+00:00",
+      "collector_id": "route-views.amsix",
+      "data_type": "update",
+      "url": "http://archive.routeviews.org/route-views.amsix/bgpdata/2021.10/UPDATES/updates.20211004.0830.bz2",
+      "rough_size": 7864320,
+      "exact_size": 0
+    },
+    {
+      "ts_start": "2021-10-04T15:30:00+00:00",
+      "ts_end": "2021-10-04T15:45:00+00:00",
+      "collector_id": "route-views.chicago",
+      "data_type": "update",
+      "url": "http://archive.routeviews.org/route-views.chicago/bgpdata/2021.10/UPDATES/updates.20211004.0830.bz2",
+      "rough_size": 1887436,
+      "exact_size": 0
+    }
+  ]
 }
-// GET https://api.broker.bgpkit.com/v1/search?start_ts=1633362000&end_ts=1633363200&data_type=update&page_size=5&page=1
+// GET https://api.broker.bgpkit.com/v2/search?ts_start=1633362000&ts_end=1633363200&data_type=update&page_size=5&page=1
 // HTTP/1.1 200 OK
-// Content-Length: 796
+// Content-Length: 1395
 // Content-Type: application/json
-// Date: Sat, 06 Nov 2021 20:10:12 GMT
+// Date: Mon, 25 Apr 2022 21:54:29 GMT
 // Server: Caddy
-// Request duration: 0.114169s
+// Server: uvicorn
+// Request duration: 1.434210s
 #+END_SRC
 
 Here is a break-down of the call parameters:
@@ -90,7 +103,7 @@ Here is a break-down of the call parameters:
 - ~page_size=5~: return 5 items per page
 - ~page=1~: return the 1st page (pages starting from 1)
 
-For more examples and API spec, please checkout our [[https://docs.broker.bgpkit.com][documentation site]].
+For more examples and API spec, please checkout our [[https://api.broker.bgpkit.com/v2/docs][documentation site]].
 
 * Data Sources
 :PROPERTIES:

@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import List
 
@@ -12,9 +13,25 @@ from pony.orm import Database, Required, PrimaryKey
 from pydantic import BaseModel, validator
 from starlette.middleware.cors import CORSMiddleware
 
-db = Database()
-db.bind(provider="postgres", user="bgpkit_admin", host="db.broker.bgpkit.com", database="bgpkit_stage")
-# set_sql_debug(True)
+
+def init_db():
+    host: str = os.environ.get("BROKER_PG_HOST")
+    user: str = os.environ.get("BROKER_PG_USER")
+    pgdb: str = os.environ.get("BROKER_PG_DB")
+
+    assert host is not None
+    assert user is not None
+    assert pgdb is not None
+
+    database = Database()
+    database.bind(provider="postgres", user=user, host=host, database=pgdb)
+    return database
+
+
+db = init_db()
+
+if os.environ.get("BROKER_DEBUG"):
+    set_sql_debug(True)
 
 
 class Item(db.Entity):

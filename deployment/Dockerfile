@@ -7,6 +7,7 @@ WORKDIR /my_project
 
 # copy your source tree
 COPY ./src ./src
+COPY ./api ./api
 COPY ./Cargo.toml .
 COPY ./Cargo.lock .
 COPY ./diesel.toml .
@@ -20,7 +21,7 @@ FROM debian:bullseye
 RUN DEBIAN=NONINTERACTIVE apt update; apt install -y libssl-dev libpq-dev ca-certificates tzdata cron; rm -rf /var/lib/apt/lists/*
 
 # copy the build artifact from the build stage
-COPY --from=build /my_project/target/release/bgpkit-broker-api /usr/local/bin/bgpkit-broker-api
+COPY --from=build /my_project/api/api.py /usr/local/bin/broker-api.py
 COPY --from=build /my_project/target/release/bgpkit-broker-updater /usr/local/bin/bgpkit-broker-updater
 
 COPY deployment/update.cron /etc/cron.d/updater-crontab
