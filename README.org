@@ -144,7 +144,7 @@ Here is a step-by-step guide for deploying BGPKIT Broker with Docker
 
 1. Checkout the repository
 2. cd into ~deployment~ directory
-3. *important*: change database credentials in [[file:deployment/db_cred.env][db_cred.env]].
+3. change database credentials in [[file:deployment/db_cred.env][db_cred.env]].
 4. run ~docker-compose up -d~
 
 The initial database bootstrap phase would take about 3-5 minutes depending on
@@ -160,7 +160,7 @@ one crawl per 5 minutes.
 You can check out if the API is running by running:
 
 #+begin_src bash
-curl localhost:8080/v1/meta/collectors
+curl localhost:8080/v2/latest
 #+end_src
 
 It should give you all the currently indexed data collectors.
@@ -170,15 +170,8 @@ It should give you all the currently indexed data collectors.
 :ID:       d66943c0-30e1-40df-a02d-063806ca8d7d
 :END:
 
-See [[file:LICENSE][LICENSE]] file for details.
+BGPKIT Broker backend code is under [[file:LICENSE][MIT LICENSE]].
 
-In summary, the BGPKIT Broker backend is free for research and education usages.
-If your institute is using our project and you feel like make us happy 🥰,
-please send us an email and tell us who you are and what kind of projects you
-are using our projects for contact@bgpkit.com.
-
-For commercial usage or creating public access points, please contact us at
-contact@bgpkit.com.
 
 * Built with ❤️ by BGPKIT Team                                      :noexport:
 
