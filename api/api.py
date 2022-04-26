@@ -185,7 +185,7 @@ async def search_mrt_files(
         query = Item.select()
         if ts_end:
             try:
-                if ts_start.isnumeric():
+                if ts_end.isnumeric():
                     end = arrow.get(int(ts_end)).datetime
                 else:
                     end = arrow.get(ts_end).to("utc").datetime
