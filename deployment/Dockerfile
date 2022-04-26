@@ -21,7 +21,7 @@ FROM debian:bullseye
 # copy the build artifact from the build stage
 COPY --from=build /my_project/target/release/bgpkit-broker-updater /usr/local/bin/bgpkit-broker-updater
 
-RUN DEBIAN=NONINTERACTIVE apt update; apt install -y libssl-dev libpq-dev ca-certificates tzdata cron python3-pip; rm -rf /var/lib/apt/lists/*
+RUN DEBIAN=NONINTERACTIVE apt update; apt install -y libssl-dev libpq-dev ca-certificates tzdata cron python3-pip postgresql-client; rm -rf /var/lib/apt/lists/*
 
 COPY api/api.py /usr/local/bin/broker-api.py
 COPY api/requirements.txt /tmp/requirements.txt

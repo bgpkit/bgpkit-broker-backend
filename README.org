@@ -97,8 +97,8 @@ GET https://api.broker.bgpkit.com/v2/search?ts_start=1633362000&ts_end=163336320
 #+END_SRC
 
 Here is a break-down of the call parameters:
-- ~start_ts=1633362000~: all BGP files after 15:40 UTC on that day
-- ~end_ts=1633362022~: all BGP files before 16:00 UTC on that day
+- ~ts_start=1633362000~: all BGP files after 15:40 UTC on that day
+- ~ts_end=1633362022~: all BGP files before 16:00 UTC on that day
 - ~data_type=update~: only return updates files
 - ~page_size=5~: return 5 items per page
 - ~page=1~: return the 1st page (pages starting from 1)
@@ -121,6 +121,7 @@ The information we currently collect for each data file includes:
   full five-minute marks.
 - url: the URL for the downloadable data file.
 - collector ID: the ID of the data collector where that data comes from.
+- rought and exact file sizes
 
 Note that the data dump frequencies for RouteViews and RIPE RIS are different.
 Here is a table summarizing their frequencies:
@@ -143,12 +144,11 @@ frequent full table dumps from RouteViews.
 Here is a step-by-step guide for deploying BGPKIT Broker with Docker
 
 1. Checkout the repository
-2. cd into ~deployment~ directory
-3. change database credentials in [[file:deployment/db_cred.env][db_cred.env]].
-4. run ~docker-compose up -d~
+2. run ~docker-compose -f deployment/docker-compose.yml up~
 
 The initial database bootstrap phase would take about 3-5 minutes depending on
-your deployment environment.
+your deployment environment. It requires at least 30GB of free storage for the
+container and build processes.
 
 After the initial bootstrap phase is done, the API service should be up and
 running, currently hosted at port ~8080~. You can modify the port in
@@ -160,10 +160,8 @@ one crawl per 5 minutes.
 You can check out if the API is running by running:
 
 #+begin_src bash
-curl localhost:8080/v2/latest
+curl localhost:8080/latest
 #+end_src
-
-It should give you all the currently indexed data collectors.
 
 * LICENSE
 :PROPERTIES:
@@ -175,9 +173,9 @@ BGPKIT Broker backend code is under [[file:LICENSE][MIT LICENSE]].
 
 * Built with ❤️ by BGPKIT Team                                      :noexport:
 
-BGPKIT is a small-team start-up that focus on building the best tooling for BGP
-data in Rust. We have 10 years of experience working with BGP data and believe
-that our work can enable our users to start keeping tracks of BGP data on their
-own turf. Learn more about what services we provide at https://bgpkit.com.
+BGPKIT is a small-team focuses on building the best tooling for BGP data in
+Rust. We have 10 years of experience working with BGP data and believe that our
+work can enable our users to start keeping tracks of BGP data on their own
+premise.  Learn more about what services we provide at https://bgpkit.com.
 
 [[https://spaces.bgpkit.org/assets/logos/wide-solid-200px.png]]
