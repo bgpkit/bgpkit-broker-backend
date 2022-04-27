@@ -1,16 +1,16 @@
 import os
+import typing
 from datetime import datetime, timedelta
 from typing import List
 
 import arrow as arrow
 import fastapi
-import typing
 import uvicorn
 from arrow import ParserError
 from fastapi import Query
 from pony.orm import *
 from pony.orm import Database, Required, PrimaryKey
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
 
@@ -34,6 +34,7 @@ db = init_db()
 if os.environ.get("BROKER_DEBUG"):
     set_sql_debug(True)
 
+set_sql_debug(True)
 
 class Item(db.Entity):
     _table_ = "items"
@@ -188,8 +189,9 @@ async def search_mrt_files(
                 if ts_end.isnumeric():
                     end = arrow.get(int(ts_end)).datetime
                 else:
-                    end = arrow.get(ts_end).to("utc").datetime
-                query = query.filter(lambda i: i.ts_start <= end)
+                    end = arrow.get(ts_end).datetime
+                ts_str = end.strftime("%Y-%m-%dT%X")
+                query = query.filter(lambda i: raw_sql('i.ts_start <= $ts_str'))
             except ParserError as e:
                 return SearchResultModel(error=f"failed to parse ts_end time string: {e}")
         if ts_start:
@@ -198,7 +200,8 @@ async def search_mrt_files(
                     start = arrow.get(int(ts_start)).datetime
                 else:
                     start = arrow.get(ts_start).datetime
-                query = query.filter(lambda i: i.ts_end >= start)
+                ts_str = start.strftime("%Y-%m-%dT%X")
+                query = query.filter(lambda i: raw_sql('i.ts_end >= $ts_str'))
             except ParserError as e:
                 return SearchResultModel(error=f"failed to parse ts_start time string: {e}")
 
