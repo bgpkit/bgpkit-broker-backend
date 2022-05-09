@@ -34,7 +34,6 @@ db = init_db()
 if os.environ.get("BROKER_DEBUG"):
     set_sql_debug(True)
 
-set_sql_debug(True)
 
 class Item(db.Entity):
     _table_ = "items"
