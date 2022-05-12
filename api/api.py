@@ -216,7 +216,8 @@ async def search_mrt_files(
                 return SearchResultModel(error=f"unknown project {project}: use 'routeviews' or 'riperis'")
 
         if collector_id:
-            query = query.filter(lambda i: i.collector_id == collector_id)
+            collectors = collector_id.replace(" ", "").split(",")
+            query = query.filter(lambda i: i.collector_id in collectors)
 
         query = query.order_by(Item.ts_start).page(page, page_size)
 
