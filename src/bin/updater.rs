@@ -14,25 +14,17 @@ struct Opts {
     #[clap(short, long)]
     collectors_config: String,
 
-    /// Database URL string, this overwrites the DATABASE_URL env variable
+    /// Index wanted to scrape from, default to scrape from all collectors
+    #[clap(long)]
+    collector_id: Option<String>,
+
+    /// SQLite database path, default writes to bgpkit-broker-data.sqlite3
     #[clap(short, long)]
     db_path: Option<String>,
 
     /// Only scrape most recent data
     #[clap(short, long)]
     latest: bool,
-
-    /// Pretty print
-    #[clap(short, long)]
-    pretty: bool,
-
-    /// Verify files available and get file sizes
-    #[clap(short, long)]
-    verify: bool,
-
-    /// Index wanted to scrape from, default to scrape from all collectors
-    #[clap(long)]
-    collector_id: Option<String>,
 }
 
 async fn run_scraper(c: &Collector, latest:bool, db_path: &str) {
@@ -78,7 +70,7 @@ fn main () {
         }).collect::<Vec<Collector>>();
 
     let db_path = match &opts.db_path {
-        None => {"".to_string()}
+        None => {"./bgpkit-broker-data.sqlite3".to_string()}
         Some(p) => {p.to_owned()}
     };
 
