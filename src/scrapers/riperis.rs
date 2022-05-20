@@ -3,6 +3,7 @@ use crate::scrapers::*;
 use log::info;
 use futures::StreamExt;
 use tokio;
+use crate::db::sqlite::BrokerDb;
 
 pub struct RipeRisScraper {
     pub update_mode: bool
@@ -10,7 +11,7 @@ pub struct RipeRisScraper {
 
 impl RipeRisScraper {
     /// `scrape` implementation for RIPE RIS.
-    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>) -> Result<(), ScrapeError> {
+    pub async fn scrape(&self, collector: &Collector, latest: bool, db_path: &str) -> Result<(), ScrapeError> {
         info!("scraping RIPE RIS collector {}; only latest month = {}", collector.id, &latest);
 
         let months = if latest {
@@ -34,7 +35,11 @@ impl RipeRisScraper {
             month_link_pattern.captures_iter(body.as_str()).filter_map(|cap|{
                 let month = cap[1].to_owned();
                 if !latest {
-                    if let Some(conn) = db {
+                    let db = match db_path {
+                        "" => None,
+                        p => Some(BrokerDb::new(p))
+                    };
+                    if let Some(conn) = &db {
                         if conn.count_records_in_month(collector.id.as_str(), month.as_str()) > 0 {
                             info!("skip month {} for {} in bootstrap mode", month.as_str(), collector.id.as_str());
                             return None
@@ -53,7 +58,7 @@ impl RipeRisScraper {
                 url,
                 month,
                 collector.id.clone(),
-                db,
+                db_path,
             )
         }).buffer_unordered(100);
         while let Some(_res) = stream.next().await {
@@ -62,7 +67,11 @@ impl RipeRisScraper {
         Ok( () )
     }
 
-    async fn scrape_month(&self, url: String, month: String, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
+    async fn scrape_month(&self, url: String, month: String, collector_id: String, db_path: &str) -> Result<(), ScrapeError>{
+        let db = match db_path {
+            "" => None,
+            p => Some(BrokerDb::new(p))
+        };
         info!("scraping data for {} {} ...", collector_id.as_str(), &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("    download for {} {} finished ", collector_id.as_str(), &month);
@@ -80,7 +89,7 @@ impl RipeRisScraper {
                 match link.contains("update") {
                     true => Item {
                         ts_start: unix_time,
-                        ts_end: unix_time + chrono::Duration::seconds(5*60),
+                        ts_end: unix_time + chrono::Duration::seconds(5*60-1),
                         url: url.clone(),
                         rough_size: size.clone(),
                         exact_size: 0,
@@ -100,19 +109,10 @@ impl RipeRisScraper {
             }).collect()
         }).await.unwrap();
 
-        if let Some(conn) = db {
+        if let Some(mut db) = db {
             info!("    insert to db for {} {}...", collector_clone.as_str(), &month);
-
-            let to_insert = if self.update_mode {
-                let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
-                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url))
-                    .collect::<Vec<Item>>()
-            } else {
-                data_items
-            };
-
-            let inserted = conn.insert_items(&to_insert);
-            info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, to_insert.len(), inserted.len());
+            let inserted = db.insert_items(&data_items);
+            info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, data_items.len(), inserted);
         }
 
         info!("scraping data for {} ... finished", &month);

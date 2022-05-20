@@ -1,5 +1,6 @@
 pub mod schema;
 pub mod models;
+pub mod sqlite;
 
 use std::collections::HashSet;
 use std::iter::FromIterator;

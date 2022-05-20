@@ -2,6 +2,7 @@ use chrono::{Datelike, Utc};
 use crate::scrapers::*;
 use log::info;
 use futures::StreamExt;
+use crate::db::sqlite::BrokerDb;
 
 pub struct RouteViewsScraper{
     pub update_mode: bool,
@@ -12,7 +13,7 @@ impl RouteViewsScraper {
     /// `scrape` implementation for RouteViews.
     ///
     /// Example of RouteViews2: http://archive.routeviews.org/bgpdata/
-    pub async fn scrape(&self, collector: &Collector, latest: bool, db: Option<&DbConnection>) -> Result<(), ScrapeError> {
+    pub async fn scrape(&self, collector: &Collector, latest: bool, db_path: &str) -> Result<(), ScrapeError> {
         info!("scraping RouteViews collector {}; only latest month = {}", collector.id, &latest);
 
         let months = if latest {
@@ -36,7 +37,11 @@ impl RouteViewsScraper {
             month_link_pattern.captures_iter(body.as_str()).filter_map(|cap|{
                 let month = cap[1].to_owned();
                 if !latest {
-                    if let Some(conn) = db {
+                    let db = match db_path {
+                        "" => None,
+                        p => Some(BrokerDb::new(p))
+                    };
+                    if let Some(conn) = &db {
                         if conn.count_records_in_month(collector.id.as_str(), month.as_str()) > 0 {
                             info!("skip month {} for {} in bootstrap mode", month.as_str(), collector.id.as_str());
                             return None
@@ -51,20 +56,24 @@ impl RouteViewsScraper {
 
         let mut stream = futures::stream::iter(months.clone()).map(|month| {
             let ribs_url = format!("{}/{}/RIBS", collector.url, month);
-            self.scrape_items(ribs_url, month, "rib".to_string(), collector.id.clone(), db)
+            self.scrape_items(ribs_url, month, "rib".to_string(), collector.id.clone(), db_path)
         }).buffer_unordered(100);
         while let Some(_res) = stream.next().await { }
 
         let mut stream = futures::stream::iter(months).map(|month| {
             let updates_url = format!("{}/{}/UPDATES", collector.url, month);
-            self.scrape_items(updates_url, month, "update".to_string(), collector.id.clone(), db)
+            self.scrape_items(updates_url, month, "update".to_string(), collector.id.clone(), db_path)
         }).buffer_unordered(100);
         while let Some(_res) = stream.next().await {  }
 
         Ok( () )
     }
 
-    async fn scrape_items(&self, url: String, month: String, data_type_str: String, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
+    async fn scrape_items(&self, url: String, month: String, data_type_str: String, collector_id: String, db_path: &str) -> Result<(), ScrapeError>{
+        let db = match db_path {
+            "" => None,
+            p => Some(BrokerDb::new(p))
+        };
         info!("scraping data for {} {}-{} ... ", collector_id.as_str(), &month, &data_type_str);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("    download for {} {}-{} finished ", collector_id.as_str(), &month, &data_type_str);
@@ -82,7 +91,7 @@ impl RouteViewsScraper {
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap();
                 let interval = match data_type_str.as_str(){
                     "rib" => chrono::Duration::seconds(0),
-                    "update" => chrono::Duration::seconds(15*60),
+                    "update" => chrono::Duration::seconds(15*60-1),
                     _ => panic!("unknown data type {}", data_type_str.as_str())
                 };
 
@@ -98,22 +107,11 @@ impl RouteViewsScraper {
             }).collect()
         }).await.unwrap();
 
-        if let Some(conn) = db {
+        if let Some(mut db) = db {
             info!("    insert to db for {} {}...", collector_clone.as_str(), &month);
-
-            let to_insert = if self.update_mode {
-
-                let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
-                data_items.into_iter().filter(|x|!current_month_items.contains(&x.url))
-                    .collect::<Vec<Item>>()
-            } else {
-                data_items
-            };
-
-            let inserted = conn.insert_items(&to_insert);
-            info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, to_insert.len(), inserted.len());
+            let inserted = db.insert_items(&data_items);
+            info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, data_items.len(), inserted);
         }
-
 
         info!("scraping data for {} ... finished", &month);
         Ok(())
@@ -141,7 +139,7 @@ mod tests {
             "2004.03".to_string(),
             "rib".to_string(),
             "route-views.linx".to_string(),
-            None
+            ""
         ).await.unwrap();
     }
 

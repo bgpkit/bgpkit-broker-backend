@@ -12,7 +12,7 @@ use tokio::time::sleep;
 
 pub use routeviews::RouteViewsScraper;
 pub use riperis::RipeRisScraper;
-use crate::db::DbConnection;
+// use crate::db::DbConnection;
 
 const SIZE_KB: u64 = u64::pow(1024,1);
 const SIZE_MB: u64 = u64::pow(1024,2);

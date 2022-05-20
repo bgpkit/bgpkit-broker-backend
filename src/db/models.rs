@@ -25,7 +25,7 @@ impl DataType {
     }
 }
 
-#[derive(Debug, Queryable, Insertable, Identifiable, Eq, PartialEq, AsChangeset)]
+#[derive(Debug, Clone, Queryable, Insertable, Identifiable, Eq, PartialEq, AsChangeset)]
 #[table_name="items"]
 #[primary_key(url)]
 pub struct Item {

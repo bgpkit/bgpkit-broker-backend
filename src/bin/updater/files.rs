@@ -1,10 +1,9 @@
-use std::env;
 use clap::Clap;
 use log::info;
 use futures::StreamExt;
 use bgpkit_broker_backend::config::Config;
-use bgpkit_broker_backend::db::DbConnection;
 use bgpkit_broker_backend::db::models::Collector;
+use bgpkit_broker_backend::db::sqlite::BrokerDb;
 use bgpkit_broker_backend::scrapers::{RipeRisScraper, RouteViewsScraper};
 
 #[derive(Clap)]
@@ -15,7 +14,7 @@ struct Opts {
 
     /// Database URL string, this overwrites the DATABASE_URL env variable
     #[clap(short, long)]
-    db_url: Option<String>,
+    db_path: Option<String>,
 
     /// Only scrape most recent data
     #[clap(short, long)]
@@ -34,13 +33,13 @@ struct Opts {
     collector_id: Option<String>,
 }
 
-async fn run_scraper(c: &Collector, latest:bool, conn: &DbConnection) {
+async fn run_scraper(c: &Collector, latest:bool, db_path: &str) {
     match c.project.as_str() {
         "routeviews" => {
-            RouteViewsScraper{update_mode: latest}.scrape(c, latest, Some(conn)).await.unwrap();
+            RouteViewsScraper{update_mode: latest}.scrape(c, latest, db_path).await.unwrap();
         }
         "riperis" => {
-            RipeRisScraper{update_mode: latest}.scrape(c, latest, Some(conn)).await.unwrap();
+            RipeRisScraper{update_mode: latest}.scrape(c, latest, db_path).await.unwrap();
         }
         _ => {panic!("")}
     }
@@ -76,15 +75,14 @@ fn main () {
             }
         }).collect::<Vec<Collector>>();
 
-    let db_url = match opts.db_url.clone() {
-        Some(url) => url,
-        None => {
-            env::var("DATABASE_URL").expect("DATABASE_URL must be set")
-        }
+    let db_path = match &opts.db_path {
+        None => {"".to_string()}
+        Some(p) => {p.to_owned()}
     };
 
-    let conn = DbConnection::new(&db_url);
+    let mut conn = BrokerDb::new(db_path.as_str());
     conn.insert_collectors(&collectors);
+    conn.close();
 
     rt.block_on(async {
 
@@ -94,7 +92,7 @@ fn main () {
         };
 
         let mut stream = futures::stream:: iter(&collectors)
-            .map(|c| run_scraper(c, opts.latest, &conn))
+            .map(|c| run_scraper(c, opts.latest, db_path.as_str()))
             .buffer_unordered(buffer_size);
 
         info!("start scraping for {} collectors", &collectors.len());
