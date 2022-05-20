@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use log::info;
 use futures::StreamExt;
 use bgpkit_broker_backend::config::Config;
@@ -6,7 +6,9 @@ use bgpkit_broker_backend::db::models::Collector;
 use bgpkit_broker_backend::db::sqlite::BrokerDb;
 use bgpkit_broker_backend::scrapers::{RipeRisScraper, RouteViewsScraper};
 
-#[derive(Clap)]
+/// BGPKIT Broker data updater utility program
+#[derive(Parser)]
+#[clap(author, version)]
 struct Opts {
     /// Collectors config file
     #[clap(short, long)]
