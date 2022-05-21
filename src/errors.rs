@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::error::Error;
-use crate::db::sqlite::LogDb;
+use crate::db::LogDb;
 
 #[derive(Debug)]
 pub enum ScrapeError {

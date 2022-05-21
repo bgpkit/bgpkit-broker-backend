@@ -3,7 +3,7 @@ use crate::scrapers::*;
 use log::info;
 use futures::StreamExt;
 use tokio;
-use crate::db::sqlite::BrokerDb;
+use crate::db::*;
 
 pub struct RipeRisScraper {
     pub update_mode: bool
@@ -91,7 +91,7 @@ impl RipeRisScraper {
                         ts_start: unix_time,
                         ts_end: unix_time + chrono::Duration::seconds(5*60-1),
                         url: url.clone(),
-                        rough_size: size.clone(),
+                        rough_size: *size,
                         exact_size: 0,
                         collector_id: collector_id.clone(),
                         data_type: "update".to_string(),
@@ -100,7 +100,7 @@ impl RipeRisScraper {
                         ts_start: unix_time,
                         ts_end: unix_time,
                         url: url.clone(),
-                        rough_size: size.clone(),
+                        rough_size: *size,
                         exact_size: 0,
                         collector_id: collector_id.clone(),
                         data_type: "rib".to_string(),

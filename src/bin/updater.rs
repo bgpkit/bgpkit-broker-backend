@@ -2,8 +2,7 @@ use clap::Parser;
 use log::info;
 use futures::StreamExt;
 use bgpkit_broker_backend::config::Config;
-use bgpkit_broker_backend::db::models::Collector;
-use bgpkit_broker_backend::db::sqlite::BrokerDb;
+use bgpkit_broker_backend::db::*;
 use bgpkit_broker_backend::scrapers::{RipeRisScraper, RouteViewsScraper};
 
 /// BGPKIT Broker data updater utility program
@@ -90,7 +89,7 @@ fn main () {
             .buffer_unordered(buffer_size);
 
         info!("start scraping for {} collectors", &collectors.len());
-        while let Some(_) = stream.next().await  { }
+        while stream.next().await.is_some()  { }
     });
 }
 

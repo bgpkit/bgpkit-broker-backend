@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::db::models::Collector as BCollector;
+use crate::db::Collector as BCollector;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -19,7 +19,7 @@ struct Collector {
 }
 
 impl Config {
-    pub fn to_collectors(self: &Self) -> Vec<BCollector> {
+    pub fn to_collectors(&self) -> Vec<BCollector> {
         let mut collectors = vec![];
         for project in &self.projects {
             assert!(["routeviews", "riperis"].contains(&project.name.as_str()));

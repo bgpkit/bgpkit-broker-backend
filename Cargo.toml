@@ -21,7 +21,6 @@ scraper="0.12.0"
 
 # cli dependency
 clap = {version = "3.1", features=["derive"]}
-indicatif = "0.15"
 
 # json feature dependency
 serde = {version = "1", features = ["derive"]}
@@ -30,12 +29,7 @@ serde_json = {version = "1"}
 futures = "0.3.21"
 
 # database dependency
-diesel = {version="1.4.4", features=["postgres", "r2d2", "serde_json", "chrono"]}
 dotenv = "0.15.0"
-
-# api
-# actix-web = "3"
-# r2d2="0.8"
 
 # sqlite
 rusqlite = { version = "0.27.0", features = ["bundled"] }

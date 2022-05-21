@@ -2,7 +2,7 @@ use chrono::{Datelike, Utc};
 use crate::scrapers::*;
 use log::info;
 use futures::StreamExt;
-use crate::db::sqlite::BrokerDb;
+use crate::db::*;
 
 pub struct RouteViewsScraper{
     pub update_mode: bool,

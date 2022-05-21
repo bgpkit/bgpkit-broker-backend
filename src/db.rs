@@ -1,6 +1,24 @@
 use chrono::{NaiveDateTime, Utc};
 use rusqlite::{Connection, params};
-use crate::db::models::{Collector, Item};
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Collector {
+    pub id: String,
+    pub project: String,
+    pub url: String,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Item {
+    pub ts_start: chrono::NaiveDateTime,
+    pub ts_end: chrono::NaiveDateTime,
+    pub collector_id: String,
+    pub data_type: String,
+    pub url: String,
+    pub rough_size: i64,
+    pub exact_size: i64,
+}
 
 pub struct BrokerDb {
     conn: Connection
@@ -25,7 +43,7 @@ impl BrokerDb {
               UNIQUE(ts_start, collector_id, data_type)
             );
         "#,
-            [],
+                   [],
         ).unwrap();
 
         db.execute(r#"
@@ -57,7 +75,7 @@ impl BrokerDb {
         let start_ts = match NaiveDateTime::parse_from_str(format!("{}.01T00:00:00", month_str).as_str(), "%Y.%m.%dT%H:%M:%S"){
             Ok(t) => {t}
             Err(e) => {
-                panic!("parsing {} failed: {}", month_str, e.to_string())
+                panic!("parsing {} failed: {}", month_str, e)
             }
         };
         let end_ts = start_ts + chrono::Duration::days(31);
