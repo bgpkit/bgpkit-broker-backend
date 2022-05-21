@@ -32,13 +32,13 @@ impl RipeRisScraper {
         } else {
             let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
             let body = reqwest::get(collector.url.as_str()).await?.text().await?;
+            let db = match db_path {
+                "" => None,
+                p => Some(BrokerDb::new(p))
+            };
             month_link_pattern.captures_iter(body.as_str()).filter_map(|cap|{
                 let month = cap[1].to_owned();
                 if !latest {
-                    let db = match db_path {
-                        "" => None,
-                        p => Some(BrokerDb::new(p))
-                    };
                     if let Some(conn) = &db {
                         if conn.count_records_in_month(collector.id.as_str(), month.as_str()) > 0 {
                             info!("skip month {} for {} in bootstrap mode", month.as_str(), collector.id.as_str());
