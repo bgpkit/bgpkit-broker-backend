@@ -60,7 +60,7 @@ impl RipeRisScraper {
                 collector.id.clone(),
                 db_path,
             )
-        }).buffer_unordered(100);
+        }).buffer_unordered(50);
         while let Some(_res) = stream.next().await {
         }
 

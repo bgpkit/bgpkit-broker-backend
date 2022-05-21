@@ -57,13 +57,13 @@ impl RouteViewsScraper {
         let mut stream = futures::stream::iter(months.clone()).map(|month| {
             let ribs_url = format!("{}/{}/RIBS", collector.url, month);
             self.scrape_items(ribs_url, month, "rib".to_string(), collector.id.clone(), db_path)
-        }).buffer_unordered(1);
+        }).buffer_unordered(50);
         while let Some(_res) = stream.next().await { }
 
         let mut stream = futures::stream::iter(months).map(|month| {
             let updates_url = format!("{}/{}/UPDATES", collector.url, month);
             self.scrape_items(updates_url, month, "update".to_string(), collector.id.clone(), db_path)
-        }).buffer_unordered(1);
+        }).buffer_unordered(50);
         while let Some(_res) = stream.next().await {  }
 
         Ok( () )
