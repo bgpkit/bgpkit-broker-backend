@@ -1,6 +1,6 @@
 use chrono::{Datelike, Utc};
 use crate::scrapers::*;
-use log::info;
+use log::{info, warn};
 use futures::StreamExt;
 use tokio;
 use crate::db::*;
@@ -81,13 +81,27 @@ impl RipeRisScraper {
         let data_items: Vec<Item> =
         tokio::task::spawn_blocking(move || {
             let items = extract_link_size(body.as_str());
-            items.iter().map(|(link, size)|{
+            items.iter().filter_map(|(link, size)|{
                 let url = format!("{}/{}",url, link).replace("http", "https");
                 let updates_link_pattern: Regex = Regex::new(r#".*(........\.....)\.gz.*"#).unwrap();
-                let time_str = updates_link_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
+                let time_str = match updates_link_pattern.captures(&url) {
+                    Some(p) => {
+                        match p.get(1){
+                            Some(s) => s.as_str(),
+                            None => {
+                                warn!("unrecognized link: {}", url);
+                                return None
+                            }
+                        }
+                    },
+                    None => {
+                        warn!("unrecognized link: {}", url);
+                        return None
+                    }
+                };
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap();
                 match link.contains("update") {
-                    true => Item {
+                    true => Some(Item {
                         ts_start: unix_time,
                         ts_end: unix_time + chrono::Duration::seconds(5*60-1),
                         url: url.clone(),
@@ -95,8 +109,8 @@ impl RipeRisScraper {
                         exact_size: 0,
                         collector_id: collector_id.clone(),
                         data_type: "update".to_string(),
-                    },
-                    false => Item {
+                    }),
+                    false => Some(Item {
                         ts_start: unix_time,
                         ts_end: unix_time,
                         url: url.clone(),
@@ -104,7 +118,7 @@ impl RipeRisScraper {
                         exact_size: 0,
                         collector_id: collector_id.clone(),
                         data_type: "rib".to_string(),
-                    }
+                    })
                 }
             }).collect()
         }).await.unwrap();

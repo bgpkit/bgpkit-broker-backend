@@ -1,6 +1,6 @@
 use chrono::{Datelike, Utc};
 use crate::scrapers::*;
-use log::info;
+use log::{info, warn};
 use futures::StreamExt;
 use crate::db::*;
 
@@ -57,13 +57,13 @@ impl RouteViewsScraper {
         let mut stream = futures::stream::iter(months.clone()).map(|month| {
             let ribs_url = format!("{}/{}/RIBS", collector.url, month);
             self.scrape_items(ribs_url, month, "rib".to_string(), collector.id.clone(), db_path)
-        }).buffer_unordered(100);
+        }).buffer_unordered(1);
         while let Some(_res) = stream.next().await { }
 
         let mut stream = futures::stream::iter(months).map(|month| {
             let updates_url = format!("{}/{}/UPDATES", collector.url, month);
             self.scrape_items(updates_url, month, "update".to_string(), collector.id.clone(), db_path)
-        }).buffer_unordered(100);
+        }).buffer_unordered(1);
         while let Some(_res) = stream.next().await {  }
 
         Ok( () )
@@ -83,11 +83,25 @@ impl RouteViewsScraper {
         let data_items: Vec<Item> =
         tokio::task::spawn_blocking(move || {
             let items = extract_link_size(body.as_str());
-            items.iter().map(|(link, size)| {
+            items.iter().filter_map(|(link, size)| {
                 // http://archive.routeviews.org/bgpdata/2001.11/UPDATES/updates.20011101.0923.bz2
                 let url = format!("{}/{}", &url, link);
                 let updates_link_pattern: Regex = Regex::new(r#".*(........\.....)\.bz2.*"#).unwrap();
-                let time_str = updates_link_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
+                let time_str = match updates_link_pattern.captures(&url) {
+                    Some(p) => {
+                        match p.get(1){
+                            Some(s) => s.as_str(),
+                            None => {
+                                warn!("unrecognized link: {}", url);
+                                return None
+                            }
+                        }
+                    },
+                    None => {
+                        warn!("unrecognized link: {}", url);
+                        return None
+                    }
+                };
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap();
                 let interval = match data_type_str.as_str(){
                     "rib" => chrono::Duration::seconds(0),
@@ -95,7 +109,7 @@ impl RouteViewsScraper {
                     _ => panic!("unknown data type {}", data_type_str.as_str())
                 };
 
-                Item {
+                Some(Item {
                     ts_start: unix_time,
                     ts_end: unix_time+interval,
                     rough_size: *size,
@@ -103,7 +117,7 @@ impl RouteViewsScraper {
                     collector_id: collector_id.clone(),
                     data_type: data_type_str.clone(),
                     url,
-                }
+                })
             }).collect()
         }).await.unwrap();
 
