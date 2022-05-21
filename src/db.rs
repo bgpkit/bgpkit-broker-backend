@@ -45,7 +45,6 @@ impl BrokerDb {
         "#,
                    [],
         ).unwrap();
-
         db.execute(r#"
             CREATE TABLE IF NOT EXISTS "collectors"(
               "id" TEXT,
@@ -53,9 +52,11 @@ impl BrokerDb {
               "url" TEXT
             );
         "#, []).unwrap();
-
         db.execute(r#"
             CREATE INDEX IF NOT EXISTS ts_index ON "items" (ts_start DESC, ts_end ASC);
+        "#, []).unwrap();
+        db.execute(r#"
+            create index grouping on items (collector_id, data_type);
         "#, []).unwrap();
         BrokerDb {conn: db}
     }
