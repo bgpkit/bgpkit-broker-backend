@@ -160,7 +160,7 @@ async def search_mrt_files(
     - `collector_id`: collector ID, e.g. `rrc00`, `route-views2`
     - `data_type`: type of MRT data file: `update` or `rib`
     - `page`: page number to look at, starting from 1
-    - `page_limit`: number of return items per page
+    - `page_size`: number of return items per page
 
     ### Response
 
