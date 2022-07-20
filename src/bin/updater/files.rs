@@ -1,5 +1,5 @@
 use std::env;
-use clap::Clap;
+use clap::Parser;
 use log::info;
 use futures::StreamExt;
 use bgpkit_broker_backend::config::Config;
@@ -7,7 +7,7 @@ use bgpkit_broker_backend::db::DbConnection;
 use bgpkit_broker_backend::db::models::Collector;
 use bgpkit_broker_backend::scrapers::{RipeRisScraper, RouteViewsScraper};
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct Opts {
     /// Collectors config file
     #[clap(short, long)]
