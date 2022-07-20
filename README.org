@@ -160,7 +160,7 @@ one crawl per 5 minutes.
 You can check out if the API is running by running:
 
 #+begin_src bash
-curl localhost:8080/latest
+curl localhost:18888/latest
 #+end_src
 
 * LICENSE

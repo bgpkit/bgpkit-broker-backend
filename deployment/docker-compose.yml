@@ -21,7 +21,7 @@ services:
     container_name: bgpkit-broker-api
     entrypoint: bash -c 'while !</dev/tcp/postgres/5432; do sleep 30; echo "wait for postgres"; done; service cron start; /usr/local/bin/start_api'
     ports:
-      - "8080:18888"
+      - "18888:18888"
     build:
       dockerfile: deployment/Dockerfile
       context: ..
