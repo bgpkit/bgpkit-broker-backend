@@ -173,9 +173,7 @@ BGPKIT Broker backend code is under [[file:LICENSE][MIT LICENSE]].
 
 * Built with ❤️ by BGPKIT Team                                      :noexport:
 
-BGPKIT is a small-team focuses on building the best tooling for BGP data in
-Rust. We have 10 years of experience working with BGP data and believe that our
-work can enable our users to start keeping tracks of BGP data on their own
-premise.  Learn more about what services we provide at https://bgpkit.com.
+BGPKIT is a small-team focuses on building the best open-source tooling for BGP data processing and analysis in
+Rust.  Learn more about what we are offering at https://github.com/bgpkit.
 
 [[https://spaces.bgpkit.org/assets/logos/wide-solid-200px.png]]
