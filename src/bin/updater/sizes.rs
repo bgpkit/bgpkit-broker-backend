@@ -1,12 +1,12 @@
 use std::env;
-use clap::Clap;
+use clap::Parser;
 use diesel::RunQueryDsl;
 use futures::StreamExt;
 use log::info;
 use bgpkit_broker_backend::db::DbConnection;
 use bgpkit_broker_backend::scrapers::check_size;
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct Opts {
     /// Database URL string, this overwrites the DATABASE_URL env variable
     #[clap(short, long)]
