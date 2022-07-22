@@ -102,7 +102,6 @@ impl RouteViewsScraper {
             info!("    insert to db for {} {}...", collector_clone.as_str(), &month);
 
             let to_insert = if self.update_mode {
-
                 let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
                 data_items.into_iter().filter(|x|!current_month_items.contains(&x.url))
                     .collect::<Vec<Item>>()
@@ -111,6 +110,10 @@ impl RouteViewsScraper {
             };
 
             let inserted = conn.insert_items(&to_insert);
+
+            #[cfg(feature = "kafka")]
+            conn.notify(&inserted).await;
+
             info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, to_insert.len(), inserted.len());
         }
 

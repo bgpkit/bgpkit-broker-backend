@@ -1,3 +1,6 @@
+#![cfg(feature = "kafka")]
+/// Kafka producer utility module
+
 use std::time::Duration;
 use rdkafka::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};

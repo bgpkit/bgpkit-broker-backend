@@ -32,6 +32,16 @@ struct Opts {
     /// Index wanted to scrape from, default to scrape from all collectors
     #[clap(long)]
     collector_id: Option<String>,
+
+    /// Kafka broker URL for new file notification
+    #[cfg(feature = "kafka")]
+    #[clap(long)]
+    kafka_broker: String,
+
+    /// Kafka topic for new file notification
+    #[cfg(feature = "kafka")]
+    #[clap(long)]
+    kafka_topic: String,
 }
 
 async fn run_scraper(c: &Collector, latest:bool, conn: &DbConnection) {
@@ -83,7 +93,12 @@ fn main () {
         }
     };
 
+    #[cfg(not(feature="kafka"))]
     let conn = DbConnection::new(&db_url);
+
+    #[cfg(feature="kafka")]
+    let conn = DbConnection::new_with_kafka(&db_url, opts.kafka_broker.as_str(), opts.kafka_topic.as_str());
+
     conn.insert_collectors(&collectors);
 
     rt.block_on(async {

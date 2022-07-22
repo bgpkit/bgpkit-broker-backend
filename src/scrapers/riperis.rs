@@ -112,6 +112,9 @@ impl RipeRisScraper {
             };
 
             let inserted = conn.insert_items(&to_insert);
+            #[cfg(feature = "kafka")]
+            conn.notify(&inserted).await;
+
             info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, to_insert.len(), inserted.len());
         }
 
