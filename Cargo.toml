@@ -41,6 +41,4 @@ futures = "0.3.21"
 diesel = {version="1.4.4", features=["postgres", "r2d2", "serde_json", "chrono"]}
 dotenv = "0.15.0"
 
-# api
-# actix-web = "3"
-# r2d2="0.8"
+rdkafka = "0.28.0"

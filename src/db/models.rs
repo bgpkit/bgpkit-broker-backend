@@ -1,5 +1,6 @@
 use crate::db::schema::{collectors,items};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
+use serde::ser::SerializeStruct;
 
 #[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
 #[table_name="collectors"]
@@ -36,4 +37,18 @@ pub struct Item {
     pub url: String,
     pub rough_size: i64,
     pub exact_size: i64,
+}
+
+impl Serialize for Item {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        let mut state = serializer.serialize_struct("Item", 7)?;
+        state.serialize_field("ts_start", self.ts_start.format("%Y-%m-%dT%H:%M:%S").to_string().as_str())?;
+        state.serialize_field("ts_end", self.ts_end.format("%Y-%m-%dT%H:%M:%S").to_string().as_str())?;
+        state.serialize_field("collector_id", self.collector_id.as_str())?;
+        state.serialize_field("data_type", self.data_type.as_str())?;
+        state.serialize_field("url", self.url.as_str())?;
+        state.serialize_field("rough_size", &self.rough_size)?;
+        state.serialize_field("exact_size", &self.exact_size)?;
+        state.end()
+    }
 }
