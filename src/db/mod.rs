@@ -1,5 +1,6 @@
 pub mod schema;
 pub mod models;
+pub mod kafka;
 
 use std::collections::HashSet;
 use std::iter::FromIterator;
@@ -9,20 +10,40 @@ use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use log::{debug, info};
 use crate::db::models::{Collector, Item};
+#[cfg(feature = "kafka")]
+use crate::db::kafka::KafkaProducer;
 
 const CHUNK_SIZE: usize = 60_000;
 
 
 pub struct DbConnection {
     pub conn: PgConnection,
+
+    #[cfg(feature = "kafka")]
+    pub kafka: Option<KafkaProducer>,
 }
 
 
 impl DbConnection {
+    #[cfg(feature = "kafka")]
+    pub fn new(db_url: &str) -> DbConnection {
+        let conn = PgConnection::establish(db_url).unwrap();
+        DbConnection{ conn , kafka: None }
+    }
+
+    #[cfg(not(feature = "kafka"))]
     pub fn new(db_url: &str) -> DbConnection {
         let conn = PgConnection::establish(db_url).unwrap();
         DbConnection{ conn }
     }
+
+    #[cfg(feature="kafka")]
+    pub fn new_with_kafka(db_url: &str, kafka_brokers: &str, kafka_topic: &str) -> DbConnection {
+        let conn = PgConnection::establish(db_url).unwrap();
+        let kafka = Some(KafkaProducer::new(kafka_brokers, kafka_topic));
+        DbConnection{ conn, kafka }
+    }
+
 
     pub fn insert_collectors(&self, entries: &Vec<Collector>){
         info!("inserting collectors info");
@@ -88,7 +109,14 @@ impl DbConnection {
                 .on_conflict_do_nothing()
                 .get_results(&self.conn).unwrap());
         }
-        return inserted_items;
+
+        inserted_items
     }
 
+    #[cfg(feature="kafka")]
+    pub async fn notify(&self, items: &Vec<Item>) {
+        if let Some(kafka) = &self.kafka {
+            kafka.produce(items).await;
+        }
+    }
 }
