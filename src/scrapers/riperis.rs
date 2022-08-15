@@ -31,18 +31,20 @@ impl RipeRisScraper {
         } else {
             let month_link_pattern: Regex = Regex::new(r#"<a href="(....\...)/">.*"#).unwrap();
             let body = reqwest::get(collector.url.as_str()).await?.text().await?;
-            month_link_pattern.captures_iter(body.as_str()).filter_map(|cap|{
+            let mut res = vec![];
+            for cap in month_link_pattern.captures_iter(body.as_str()) {
                 let month = cap[1].to_owned();
                 if !latest {
                     if let Some(conn) = db {
-                        if conn.count_records_in_month(collector.id.as_str(), month.as_str()) > 0 {
+                        if conn.count_records_in_month(collector.id.as_str(), month.as_str()).await > 0 {
                             info!("skip month {} for {} in bootstrap mode", month.as_str(), collector.id.as_str());
-                            return None
+                            continue
                         }
                     }
                 }
-                Some(month)
-            }).collect()
+                res.push(month)
+            }
+            res
         };
 
         info!("total of {} months to scrape", months.len());
@@ -104,14 +106,15 @@ impl RipeRisScraper {
             info!("    insert to db for {} {}...", collector_clone.as_str(), &month);
 
             let to_insert = if self.update_mode {
-                let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str());
+                let current_month_items = conn.get_urls_in_month(collector_clone.as_str(), month.as_str()).await;
                 data_items.into_iter().filter(|x|!current_month_items.contains(&x.url))
                     .collect::<Vec<Item>>()
             } else {
                 data_items
             };
 
-            let inserted = conn.insert_items(&to_insert);
+            let inserted = conn.insert_items(&to_insert).await;
+
             #[cfg(feature = "kafka")]
             conn.notify(&inserted).await;
 

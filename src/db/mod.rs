@@ -1,15 +1,16 @@
-pub mod schema;
 pub mod models;
 pub mod kafka;
 
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use chrono::NaiveDateTime;
-use diesel::dsl::count;
-use diesel::prelude::*;
-use diesel::pg::PgConnection;
-use log::{debug, info};
+
+use log::info;
+use sqlx::{Executor, PgPool, Postgres, QueryBuilder, Row};
+use sqlx::postgres::PgRow;
+
 use crate::db::models::{Collector, Item};
+
 #[cfg(feature = "kafka")]
 use crate::db::kafka::KafkaProducer;
 
@@ -17,7 +18,7 @@ const CHUNK_SIZE: usize = 60_000;
 
 
 pub struct DbConnection {
-    pub conn: PgConnection,
+    pub pool: PgPool,
 
     #[cfg(feature = "kafka")]
     pub kafka: Option<KafkaProducer>,
@@ -26,36 +27,43 @@ pub struct DbConnection {
 
 impl DbConnection {
     #[cfg(feature = "kafka")]
-    pub fn new(db_url: &str) -> DbConnection {
-        let conn = PgConnection::establish(db_url).unwrap();
-        DbConnection{ conn , kafka: None }
+    pub async fn new(db_url: &str) -> DbConnection {
+        let pool = PgPool::connect(db_url).await.unwrap();
+        DbConnection{ pool , kafka: None }
     }
 
     #[cfg(not(feature = "kafka"))]
-    pub fn new(db_url: &str) -> DbConnection {
-        let conn = PgConnection::establish(db_url).unwrap();
-        DbConnection{ conn }
+    pub async fn new(db_url: &str) -> DbConnection {
+        let pool = PgPool::connect(db_url).await.unwrap();
+        DbConnection{ pool }
     }
 
     #[cfg(feature="kafka")]
-    pub fn new_with_kafka(db_url: &str, kafka_brokers: &str, kafka_topic: &str) -> DbConnection {
-        let conn = PgConnection::establish(db_url).unwrap();
+    pub async fn new_with_kafka(db_url: &str, kafka_brokers: &str, kafka_topic: &str) -> DbConnection {
+        let pool = PgPool::connect(db_url).await.unwrap();
         let kafka = Some(KafkaProducer::new(kafka_brokers, kafka_topic));
-        DbConnection{ conn, kafka }
+        DbConnection{ pool, kafka }
     }
 
-
-    pub fn insert_collectors(&self, entries: &Vec<Collector>){
+    pub async fn insert_collectors(&self, entries: &Vec<Collector>){
         info!("inserting collectors info");
-        use schema::collectors::dsl::*;
-        diesel::insert_into(collectors)
-            .values(entries)
-            .on_conflict_do_nothing()
-            .execute(&self.conn).unwrap();
+
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "INSERT INTO collectors(id, project, url) "
+        );
+        query_builder.push_values(entries, |mut b, collector| {
+            b.push_bind(collector.id.as_str())
+                .push_bind(collector.project.as_str())
+                .push_bind(collector.url.as_str());
+        });
+        query_builder.push(
+            " ON CONFLICT DO NOTHING "
+        );
+        let query = query_builder.build();
+        let _res = self.pool.execute(query).await;
     }
 
-    pub fn count_records_in_month(&self, collector: &str, month_str: &str) -> i64 {
-        use schema::items::dsl::*;
+    pub async fn count_records_in_month(&self, collector: &str, month_str: &str) -> i64 {
 
         let start_ts = match NaiveDateTime::parse_from_str(format!("{}.01T00:00:00", month_str).as_str(), "%Y.%m.%dT%H:%M:%S"){
             Ok(t) => {t}
@@ -64,16 +72,26 @@ impl DbConnection {
             }
         };
         let end_ts = start_ts + chrono::Duration::days(31);
-        items
-            .filter(collector_id.eq(collector))
-            .filter(ts_start.ge(start_ts))
-            .filter(ts_start.le(end_ts))
-            .select(count(url)).first::<i64>(&self.conn).unwrap()
+
+        let records = sqlx::query!(
+           r#"
+           SELECT count(*) as c
+           FROM items
+           WHERE collector_id=$1 AND
+           ts_start >= $2 AND
+           ts_start <= $3
+           "#,
+            collector,
+            &start_ts,
+            &end_ts,
+       )
+            .fetch_one(&self.pool)
+            .await.unwrap();
+
+        records.c.unwrap()
     }
 
-    pub fn get_urls_in_month(&self, collector: &str, month_str: &str) -> HashSet<String> {
-        use schema::items::dsl::*;
-
+    pub async fn get_urls_in_month(&self, collector: &str, month_str: &str) -> HashSet<String> {
         let start_ts = match NaiveDateTime::parse_from_str(format!("{}.01T00:00:00", month_str).as_str(), "%Y.%m.%dT%H:%M:%S"){
             Ok(t) => {t}
             Err(e) => {
@@ -81,36 +99,59 @@ impl DbConnection {
             }
         };
         let end_ts = start_ts + chrono::Duration::days(31);
-        HashSet::from_iter(items
-            .filter(collector_id.eq(collector))
-            .filter(ts_start.ge(start_ts))
-            .filter(ts_start.le(end_ts))
-            .select(url).load::<String>(&self.conn).unwrap().into_iter())
+        let urls: Vec<String> = sqlx::query!(
+            r#"
+           SELECT url
+           FROM items
+           WHERE collector_id=$1 AND
+           ts_start >= $2 AND
+           ts_start <= $3
+           "#,
+            collector, &start_ts, &end_ts
+        )
+            .fetch_all(&self.pool).await.unwrap().iter().map(|r|r.url.to_string()).collect::<Vec<String>>();
+
+        HashSet::from_iter(urls.into_iter())
     }
 
-    pub fn get_urls_unverified(&self, limit: i64) -> Vec<Item> {
-        use schema::items::dsl::*;
-        items.filter(exact_size.eq(0))
-            .order(ts_start.desc())
-            .limit(limit)
-            .load::<Item>(&self.conn).unwrap()
-    }
-
-    pub fn insert_items(&self, entries: &Vec<Item>) -> Vec<Item> {
-        use schema::items::dsl::*;
-        let chunks = entries.chunks(CHUNK_SIZE/7);
-        let chunks_len = chunks.len();
-        let mut inserted_items: Vec<Item> = vec![];
-        for (i, chunk) in chunks.enumerate() {
-            debug!("inserting {} chunk out of {} total chunks", i+1, chunks_len);
-            inserted_items.extend(
-                diesel::insert_into(items)
-                .values(chunk)
-                .on_conflict_do_nothing()
-                .get_results(&self.conn).unwrap());
+    pub async fn insert_items(&self, entries: &Vec<Item>) -> Vec<Item> {
+        let mut inserted = vec![];
+        for chunk in entries.chunks(CHUNK_SIZE/7){
+            let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+                "INSERT INTO items(ts_start, ts_end, collector_id, data_type, url, rough_size, exact_size) "
+            );
+            query_builder.push_values(chunk, |mut b, item| {
+                b
+                    .push_bind(&item.ts_start)
+                    .push_bind(&item.ts_end)
+                    .push_bind(item.collector_id.as_str())
+                    .push_bind(item.data_type.as_str())
+                    .push_bind(item.url.as_str())
+                    .push_bind(item.rough_size)
+                    .push_bind(item.exact_size)
+                ;
+            });
+            query_builder.push(
+                " ON CONFLICT DO NOTHING "
+            );
+            query_builder.push(
+            " RETURNING *"
+            );
+            let query = query_builder.build();
+            let res: Vec<Item> = query.fetch_all(&self.pool).await.unwrap().into_iter().map(|row: PgRow|{
+                Item{
+                    ts_start: row.try_get("ts_start").unwrap(),
+                    ts_end: row.try_get("ts_end").unwrap(),
+                    collector_id: row.try_get("collector_id").unwrap(),
+                    data_type: row.try_get("data_type").unwrap(),
+                    url: row.try_get("url").unwrap(),
+                    rough_size: row.try_get("rough_size").unwrap(),
+                    exact_size: row.try_get("exact_size").unwrap()
+                }
+            }).collect();
+            inserted.extend(res);
         }
-
-        inserted_items
+        inserted
     }
 
     #[cfg(feature="kafka")]
@@ -118,5 +159,57 @@ impl DbConnection {
         if let Some(kafka) = &self.kafka {
             kafka.produce(items).await;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_insert() {
+        let db = DbConnection::new("postgres://localhost/mingwei").await;
+
+        let collectors = vec![
+            Collector{
+                id: "rrc00".to_string(),
+                project: "ris".to_string(),
+                url: "1".to_string()
+            },
+            Collector{
+                id: "rrc01".to_string(),
+                project: "ris".to_string(),
+                url: "2".to_string()
+            },
+        ];
+        db.insert_collectors(&collectors).await;
+
+        let items = vec![
+            Item{
+                ts_start: chrono::Utc::now().naive_utc(),
+                ts_end: chrono::Utc::now().naive_utc(),
+                collector_id: "rrc00".to_string(),
+                data_type: "update".to_string(),
+                url: "test".to_string(),
+                rough_size: 0,
+                exact_size: 1
+            },
+            Item{
+                ts_start: chrono::Utc::now().naive_utc(),
+                ts_end: chrono::Utc::now().naive_utc(),
+                collector_id: "rrc00".to_string(),
+                data_type: "update".to_string(),
+                url: "test2".to_string(),
+                rough_size: 0,
+                exact_size: 2
+            },
+        ];
+        let inserted = db.insert_items(&items).await;
+        assert_eq!(inserted.len(), 2);
+        let inserted = db.insert_items(&items).await;
+        assert_eq!(inserted.len(), 0);
+
+        dbg!(db.get_urls_in_month("rrc00", "2022.08").await);
+        dbg!(db.count_records_in_month("rrc00", "2022.08").await);
     }
 }

@@ -1,9 +1,7 @@
-use crate::db::schema::{collectors,items};
 use serde::{Deserialize, Serialize, Serializer};
 use serde::ser::SerializeStruct;
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
-#[table_name="collectors"]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Collector {
     pub id: String,
     pub project: String,
@@ -26,9 +24,7 @@ impl DataType {
     }
 }
 
-#[derive(Debug, Queryable, Insertable, Identifiable, Eq, PartialEq, AsChangeset)]
-#[table_name="items"]
-#[primary_key(url)]
+#[derive(Debug, Eq, PartialEq, sqlx::FromRow)]
 pub struct Item {
     pub ts_start: chrono::NaiveDateTime,
     pub ts_end: chrono::NaiveDateTime,

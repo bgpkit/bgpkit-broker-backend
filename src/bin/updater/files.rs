@@ -93,15 +93,13 @@ fn main () {
         }
     };
 
-    #[cfg(not(feature="kafka"))]
-    let conn = DbConnection::new(&db_url);
-
-    #[cfg(feature="kafka")]
-    let conn = DbConnection::new_with_kafka(&db_url, opts.kafka_broker.as_str(), opts.kafka_topic.as_str());
-
-    conn.insert_collectors(&collectors);
 
     rt.block_on(async {
+        #[cfg(not(feature="kafka"))]
+            let conn = DbConnection::new(&db_url).await;
+        #[cfg(feature="kafka")]
+            let conn = DbConnection::new_with_kafka(&db_url, opts.kafka_broker.as_str(), opts.kafka_topic.as_str()).await;
+        conn.insert_collectors(&collectors).await;
 
         let buffer_size = match opts.latest {
             true => 20,

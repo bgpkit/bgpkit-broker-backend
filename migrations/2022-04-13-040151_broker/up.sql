@@ -56,12 +56,3 @@ CREATE UNIQUE INDEX IF NOT EXISTS item_url
     ON latest_times USING btree
         (item_url)
     TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS collectors
-    OWNER to bgpkit_admin;
-
-ALTER TABLE IF EXISTS items
-    OWNER to bgpkit_admin;
-
-ALTER MATERIALIZED VIEW IF EXISTS latest_times
-    OWNER to bgpkit_admin;
