@@ -1,6 +1,6 @@
 [package]
 name = "bgpkit-broker-backend"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Mingwei Zhang <mingwei@bgpkit.com>"]
 edition = "2018"
 
@@ -38,4 +38,5 @@ dotenv = "0.15.0"
 rdkafka = {version = "0.28.0", optional=true}
 
 [features]
+default=["kafka"]
 kafka = ["rdkafka"]
