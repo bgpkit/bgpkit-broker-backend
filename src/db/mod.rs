@@ -7,7 +7,7 @@ use chrono::NaiveDateTime;
 
 use log::info;
 use sqlx::{Executor, PgPool, Postgres, QueryBuilder, Row};
-use sqlx::postgres::PgRow;
+use sqlx::postgres::{PgConnectOptions, PgRow};
 
 use crate::db::models::{Collector, Item};
 
@@ -25,22 +25,52 @@ pub struct DbConnection {
 }
 
 
+fn url_to_options(db_url: &str, disable_prepare: bool) -> PgConnectOptions {
+    let parsed = url::Url::parse(db_url).unwrap();
+    let mut opts = PgConnectOptions::new()
+        .host(parsed.host().unwrap().to_string().as_str());
+    if parsed.username()!="" {
+        opts = opts.username(parsed.username());
+    }
+
+    if let Some(password) = parsed.password() {
+        opts = opts.password(password);
+    }
+
+    if let Some(port) = parsed.port() {
+        opts = opts.port(port);
+    }
+
+    let parts = db_url.split("/").collect::<Vec<&str>>();
+    let db_name = parts.into_iter().last().unwrap();
+    opts = opts.database(db_name);
+
+    if disable_prepare {
+        opts = opts.statement_cache_capacity(0);
+    }
+
+    opts
+}
+
 impl DbConnection {
     #[cfg(feature = "kafka")]
     pub async fn new(db_url: &str) -> DbConnection {
-        let pool = PgPool::connect(db_url).await.unwrap();
-        DbConnection{ pool , kafka: None }
+        let options = url_to_options(db_url, true);
+        let pool = PgPool::connect_with(options).await.unwrap();
+        DbConnection{ pool, kafka: None }
     }
 
     #[cfg(not(feature = "kafka"))]
     pub async fn new(db_url: &str) -> DbConnection {
-        let pool = PgPool::connect(db_url).await.unwrap();
+        let options = url_to_options(db_url, true);
+        let pool = PgPool::connect_with(options).await.unwrap();
         DbConnection{ pool }
     }
 
     #[cfg(feature="kafka")]
     pub async fn new_with_kafka(db_url: &str, kafka_brokers: &str, kafka_topic: &str) -> DbConnection {
-        let pool = PgPool::connect(db_url).await.unwrap();
+        let options = url_to_options(db_url, true);
+        let pool = PgPool::connect_with(options).await.unwrap();
         let kafka = Some(KafkaProducer::new(kafka_brokers, kafka_topic));
         DbConnection{ pool, kafka }
     }
