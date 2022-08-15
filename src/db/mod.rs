@@ -103,7 +103,7 @@ impl DbConnection {
         };
         let end_ts = start_ts + chrono::Duration::days(31);
 
-        let records = sqlx::query!(
+        let records = sqlx::query(
            r#"
            SELECT count(*) as c
            FROM items
@@ -111,14 +111,14 @@ impl DbConnection {
            ts_start >= $2 AND
            ts_start <= $3
            "#,
-            collector,
-            &start_ts,
-            &end_ts,
        )
+            .bind(collector)
+            .bind(&start_ts)
+            .bind(&end_ts)
             .fetch_one(&self.pool)
             .await.unwrap();
 
-        records.c.unwrap()
+        records.try_get("c").unwrap()
     }
 
     pub async fn get_urls_in_month(&self, collector: &str, month_str: &str) -> HashSet<String> {
@@ -129,7 +129,7 @@ impl DbConnection {
             }
         };
         let end_ts = start_ts + chrono::Duration::days(31);
-        let urls: Vec<String> = sqlx::query!(
+        let urls = sqlx::query(
             r#"
            SELECT url
            FROM items
@@ -137,9 +137,12 @@ impl DbConnection {
            ts_start >= $2 AND
            ts_start <= $3
            "#,
-            collector, &start_ts, &end_ts
         )
-            .fetch_all(&self.pool).await.unwrap().iter().map(|r|r.url.to_string()).collect::<Vec<String>>();
+            .bind(collector)
+            .bind(&start_ts)
+            .bind(&end_ts)
+            .fetch_all(&self.pool).await.unwrap()
+            .iter().map(|r|r.get::<String,_>("url").to_string()).collect::<Vec<String>>();
 
         HashSet::from_iter(urls.into_iter())
     }
