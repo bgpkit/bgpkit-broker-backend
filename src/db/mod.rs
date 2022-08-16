@@ -7,7 +7,7 @@ use chrono::NaiveDateTime;
 
 use log::info;
 use sqlx::{Executor, PgPool, Postgres, QueryBuilder, Row};
-use sqlx::postgres::{PgConnectOptions, PgRow};
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgRow};
 
 use crate::db::models::{Collector, Item};
 
@@ -56,21 +56,21 @@ impl DbConnection {
     #[cfg(feature = "kafka")]
     pub async fn new(db_url: &str) -> DbConnection {
         let options = url_to_options(db_url, true);
-        let pool = PgPool::connect_with(options).await.unwrap();
+        let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
         DbConnection{ pool, kafka: None }
     }
 
     #[cfg(not(feature = "kafka"))]
     pub async fn new(db_url: &str) -> DbConnection {
         let options = url_to_options(db_url, true);
-        let pool = PgPool::connect_with(options).await.unwrap();
+        let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
         DbConnection{ pool }
     }
 
     #[cfg(feature="kafka")]
     pub async fn new_with_kafka(db_url: &str, kafka_brokers: &str, kafka_topic: &str) -> DbConnection {
         let options = url_to_options(db_url, true);
-        let pool = PgPool::connect_with(options).await.unwrap();
+        let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
         let kafka = Some(KafkaProducer::new(kafka_brokers, kafka_topic));
         DbConnection{ pool, kafka }
     }
