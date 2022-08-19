@@ -17,13 +17,26 @@ services:
     networks:
       - app-tier
 
+  bgpkit-broker-updater:
+    container_name: bgpkit-broker-updater
+    entrypoint: bash -c 'sleep 10; while !</dev/tcp/postgres/5432; do sleep 30; echo "wait for postgres"; done; service cron start; while true; do sleep 30; done;'
+    build:
+      dockerfile: deployment/Dockerfile.updater
+      context: ..
+    restart: always
+    env_file: db_cred.env
+    depends_on:
+      - postgres
+    networks:
+      - app-tier
+
   bgpkit-broker-api:
     container_name: bgpkit-broker-api
-    entrypoint: bash -c 'while !</dev/tcp/postgres/5432; do sleep 30; echo "wait for postgres"; done; service cron start; /usr/local/bin/start_api'
+    entrypoint: bash -c 'sleep 10; while !</dev/tcp/postgres/5432; do sleep 30; echo "wait for postgres"; done; /usr/local/bin/start_api'
     ports:
       - "18888:18888"
     build:
-      dockerfile: deployment/Dockerfile
+      dockerfile: deployment/Dockerfile.api
       context: ..
     restart: always
     env_file: db_cred.env

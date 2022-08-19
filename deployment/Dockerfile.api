@@ -1,0 +1,12 @@
+FROM debian:bullseye
+
+RUN DEBIAN=NONINTERACTIVE apt update; apt install -y libssl-dev libpq-dev ca-certificates tzdata cron python3-pip postgresql-client; rm -rf /var/lib/apt/lists/*
+
+COPY api/api.py /usr/local/bin/broker-api.py
+COPY api/requirements.txt /tmp/requirements.txt
+COPY deployment/start_api.sh /usr/local/bin/start_api
+RUN chmod +x /usr/local/bin/start_api
+RUN pip3 install -r /tmp/requirements.txt
+
+# set the startup command to run your binary
+ENTRYPOINT ["bash"]
