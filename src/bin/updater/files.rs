@@ -36,12 +36,12 @@ struct Opts {
     /// Kafka broker URL for new file notification
     #[cfg(feature = "kafka")]
     #[clap(long)]
-    kafka_broker: String,
+    kafka_broker: Option<String>,
 
     /// Kafka topic for new file notification
     #[cfg(feature = "kafka")]
     #[clap(long)]
-    kafka_topic: String,
+    kafka_topic: Option<String>,
 }
 
 async fn run_scraper(c: &Collector, latest:bool, conn: &DbConnection) {
@@ -98,7 +98,7 @@ fn main () {
         #[cfg(not(feature="kafka"))]
             let conn = DbConnection::new(&db_url).await;
         #[cfg(feature="kafka")]
-            let conn = DbConnection::new_with_kafka(&db_url, opts.kafka_broker.as_str(), opts.kafka_topic.as_str()).await;
+            let conn = DbConnection::new_with_kafka(&db_url, opts.kafka_broker.as_deref(), opts.kafka_topic.as_deref()).await;
         conn.insert_collectors(&collectors).await;
 
         let buffer_size = match opts.latest {
