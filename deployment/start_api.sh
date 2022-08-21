@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export BROKER_PG_HOST=postgres
+export BROKER_PG_HOST=${POSTGRES_HOST}
 export BROKER_PG_USER=${POSTGRES_USER}
 export BROKER_PG_DB=${POSTGRES_DB}
 export BROKER_PG_PASSWORD=${POSTGRES_PASSWORD}

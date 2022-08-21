@@ -68,10 +68,18 @@ impl DbConnection {
     }
 
     #[cfg(feature="kafka")]
-    pub async fn new_with_kafka(db_url: &str, kafka_brokers: &str, kafka_topic: &str) -> DbConnection {
+    pub async fn new_with_kafka(db_url: &str, kafka_brokers: Option<&str>, kafka_topic: Option<&str>) -> DbConnection {
         let options = url_to_options(db_url, true);
         let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
-        let kafka = Some(KafkaProducer::new(kafka_brokers, kafka_topic));
+        let kafka: Option<KafkaProducer> =
+            if kafka_brokers.is_some() && kafka_topic.is_some() {
+                let broker = kafka_brokers.unwrap();
+                let topic = kafka_topic.unwrap();
+                info!("connecting to kafka broker {} with topic {}", broker, topic);
+                Some(KafkaProducer::new(broker, topic))
+            } else {
+                None
+            };
         DbConnection{ pool, kafka }
     }
 
