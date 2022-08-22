@@ -28,7 +28,7 @@ COPY deployment/update.cron /etc/cron.d/updater-crontab
 COPY deployment/update.sh /usr/local/bin/update.sh
 RUN chmod +x /usr/local/bin/update.sh
 RUN chmod 0644 /etc/cron.d/updater-crontab &&\
-     crontab /etc/cron.d/updater-crontab
+     crontab /etc/cron.d/updater-crontab \
 
 # set the startup command to run your binary
-ENTRYPOINT ["bash"]
+ENTRYPOINT bash -c 'service cron start; tail -f /dev/null'
