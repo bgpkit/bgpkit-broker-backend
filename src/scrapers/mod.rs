@@ -1,14 +1,14 @@
 pub mod routeviews;
 pub mod riperis;
+mod utils;
 
-use std::time::Duration;
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 use crate::db::models::*;
 use crate::errors::*;
 use regex::Regex;
 use chrono::NaiveDateTime;
-use log::{info, warn};
 use scraper::{Html, Selector};
-use tokio::time::sleep;
 
 pub use routeviews::RouteViewsScraper;
 pub use riperis::RipeRisScraper;
@@ -18,62 +18,35 @@ const SIZE_KB: u64 = u64::pow(1024,1);
 const SIZE_MB: u64 = u64::pow(1024,2);
 const SIZE_GB: u64 = u64::pow(1024,3);
 
-pub async fn check_size(mut item: Item) -> Option<Item> {
-    let url_clone = item.url.to_string();
-
-    let client = reqwest::Client::new();
-
-    info!("checking {}", url_clone.as_str());
-    let mut retry_left = 3;
-    let mut res = None;
-    loop {
-        res = match client.get(url_clone.as_str()).send().await{
-            Ok(res) => {
-                info!("finished checking {}", url_clone.as_str());
-                Some(res)
-            }
-            Err(e) => {
-                if retry_left == 0 {
-                    warn!("give up retry {}", url_clone.as_str());
-                    break
-                }
-                retry_left -= 1;
-                warn!("error: {}; retry downloading {}", e.to_string(), url_clone.as_str());
-                sleep(Duration::from_millis(1000)).await;
-                continue
-            }
-        };
-        break
-    }
-
-    if res.is_none() {
-        return None
-    }
-
-    let response = match res{
-        None => {
-            return None
-        }
-        Some(r) => {r}
-    };
-
-    if !response.status().is_success() {
-        return None
-    }
-    let total_size = match response.content_length(){
-        None => {
-            return None
-        }
-        Some(l) => {
-            l as i64
-        }
-    };
-
-    item.exact_size = total_size;
-
-    return Some(item)
+#[derive(Debug, Clone, Copy)]
+pub enum CrawlMode {
+    Latest,
+    Bootstrap,
+    TwoMonths
 }
 
+impl Display for CrawlMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self{
+            CrawlMode::Latest => {write!(f, "latest")}
+            CrawlMode::Bootstrap => {write!(f, "bootstrap")}
+            CrawlMode::TwoMonths => {write!(f, "two_months")}
+        }
+    }
+}
+
+impl FromStr for CrawlMode {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "latest" => Ok(CrawlMode::Latest),
+            "two_months" => Ok(CrawlMode::TwoMonths),
+            "bootstrap" => Ok(CrawlMode::Bootstrap),
+            _ => Err("crawl mode must be one of the: ['latest', 'two_months', 'bootstrap']".to_string())
+        }
+    }
+}
 
 fn size_str_to_bytes(size_str: &str, size_pattern: &Regex) -> i64 {
     let cap = size_pattern.captures(size_str).unwrap();

@@ -5,7 +5,7 @@ use futures::StreamExt;
 use bgpkit_broker_backend::config::Config;
 use bgpkit_broker_backend::db::DbConnection;
 use bgpkit_broker_backend::db::models::Collector;
-use bgpkit_broker_backend::scrapers::{RipeRisScraper, RouteViewsScraper};
+use bgpkit_broker_backend::scrapers::{CrawlMode, RipeRisScraper, RouteViewsScraper};
 
 #[derive(Parser)]
 struct Opts {
@@ -17,9 +17,9 @@ struct Opts {
     #[clap(short, long)]
     db_url: Option<String>,
 
-    /// Only scrape most recent data
+    /// Crawl mode: latest, two_months, bootstrap
     #[clap(short, long)]
-    latest: bool,
+    mode: CrawlMode,
 
     /// Pretty print
     #[clap(short, long)]
@@ -44,13 +44,13 @@ struct Opts {
     kafka_topic: Option<String>,
 }
 
-async fn run_scraper(c: &Collector, latest:bool, conn: &DbConnection) {
+async fn run_scraper(c: &Collector, mode: CrawlMode, conn: &DbConnection) {
     match c.project.as_str() {
         "routeviews" => {
-            RouteViewsScraper{update_mode: latest}.scrape(c, latest, Some(conn)).await.unwrap();
+            RouteViewsScraper{ mode }.scrape(c, Some(conn)).await.unwrap();
         }
         "riperis" => {
-            RipeRisScraper{update_mode: latest}.scrape(c, latest, Some(conn)).await.unwrap();
+            RipeRisScraper{ mode }.scrape(c, Some(conn)).await.unwrap();
         }
         _ => {panic!("")}
     }
@@ -101,13 +101,13 @@ fn main () {
             let conn = DbConnection::new_with_kafka(&db_url, opts.kafka_broker.as_deref(), opts.kafka_topic.as_deref()).await;
         conn.insert_collectors(&collectors).await;
 
-        let buffer_size = match opts.latest {
-            true => 20,
-            false => 1,
+        let buffer_size = match &opts.mode {
+            CrawlMode::Latest| CrawlMode::TwoMonths => {20}
+            CrawlMode::Bootstrap => {1}
         };
 
         let mut stream = futures::stream:: iter(&collectors)
-            .map(|c| run_scraper(c, opts.latest, &conn))
+            .map(|c| run_scraper(c, opts.mode, &conn))
             .buffer_unordered(buffer_size);
 
         info!("start scraping for {} collectors", &collectors.len());
