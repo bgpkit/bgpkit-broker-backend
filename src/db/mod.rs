@@ -6,7 +6,7 @@ use std::iter::FromIterator;
 use chrono::NaiveDateTime;
 
 use log::info;
-use sqlx::{Executor, PgPool, Postgres, QueryBuilder, Row};
+use sqlx::{ConnectOptions, Executor, PgPool, Postgres, QueryBuilder, Row};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgRow};
 
 use crate::db::models::{Collector, Item};
@@ -25,7 +25,7 @@ pub struct DbConnection {
 }
 
 
-fn url_to_options(db_url: &str, disable_prepare: bool) -> PgConnectOptions {
+fn url_to_options(db_url: &str, disable_prepare: bool, disable_logging: bool) -> PgConnectOptions {
     let parsed = url::Url::parse(db_url).unwrap();
     let mut opts = PgConnectOptions::new()
         .host(parsed.host().unwrap().to_string().as_str());
@@ -49,13 +49,17 @@ fn url_to_options(db_url: &str, disable_prepare: bool) -> PgConnectOptions {
         opts = opts.statement_cache_capacity(0);
     }
 
+    if disable_logging {
+        opts.disable_statement_logging();
+    }
+
     opts
 }
 
 impl DbConnection {
     #[cfg(feature = "kafka")]
     pub async fn new(db_url: &str) -> DbConnection {
-        let options = url_to_options(db_url, true);
+        let options = url_to_options(db_url, true, true);
         let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
         DbConnection{ pool, kafka: None }
     }
@@ -69,7 +73,7 @@ impl DbConnection {
 
     #[cfg(feature="kafka")]
     pub async fn new_with_kafka(db_url: &str, kafka_brokers: Option<&str>, kafka_topic: Option<&str>) -> DbConnection {
-        let options = url_to_options(db_url, true);
+        let options = url_to_options(db_url, true, true);
         let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
         let kafka: Option<KafkaProducer> =
             if kafka_brokers.is_some() && kafka_topic.is_some() {
