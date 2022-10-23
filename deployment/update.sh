@@ -8,5 +8,5 @@ else
   KAFKA_OPTS=""
 fi
 
-RUST_LOG=bgpkit_broker_backend /usr/local/bin/bgpkit-broker-updater -c /usr/local/etc/bgpkit-broker-collectors.conf -l -d ${DATABASE_URL} ${KAFKA_OPTS} 2>/tmp/bgpkit-broker-updater.log
-psql ${DATABASE_URL} -c "REFRESH MATERIALIZED VIEW latest_times" > /dev/null
+RUST_LOG=bgpkit_broker_backend /usr/local/bin/bgpkit-broker-updater -c /usr/local/etc/bgpkit-broker-collectors.conf --mode latest -d ${DATABASE_URL} ${KAFKA_OPTS} # 2>/tmp/bgpkit-broker-updater.log
+psql ${DATABASE_URL} -c "REFRESH MATERIALIZED VIEW latest_times" # > /dev/null

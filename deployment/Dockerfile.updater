@@ -14,21 +14,33 @@ COPY ./Cargo.lock .
 RUN cargo build --release
 
 
+
 # our final base
 FROM debian:bullseye
 
 # copy the build artifact from the build stage
 COPY --from=build /my_project/target/release/bgpkit-broker-updater /usr/local/bin/bgpkit-broker-updater
 
-RUN DEBIAN=NONINTERACTIVE apt update; apt install -y libssl-dev libpq-dev ca-certificates tzdata cron python3-pip postgresql-client; rm -rf /var/lib/apt/lists/*
+RUN DEBIAN=NONINTERACTIVE apt update; apt install -y curl libssl-dev libpq-dev ca-certificates tzdata cron python3-pip postgresql-client; rm -rf /var/lib/apt/lists/*
 
 COPY deployment/full-config.json /usr/local/etc/bgpkit-broker-collectors.conf
 
 COPY deployment/update.cron /etc/cron.d/updater-crontab
 COPY deployment/update.sh /usr/local/bin/update.sh
 RUN chmod +x /usr/local/bin/update.sh
+
+ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.1/supercronic-linux-amd64 \
+    SUPERCRONIC=supercronic-linux-amd64 \
+    SUPERCRONIC_SHA1SUM=d7f4c0886eb85249ad05ed592902fa6865bb9d70
+
+RUN curl -fsSLO "$SUPERCRONIC_URL" \
+ && echo "${SUPERCRONIC_SHA1SUM}  ${SUPERCRONIC}" | sha1sum -c - \
+ && chmod +x "$SUPERCRONIC" \
+ && mv "$SUPERCRONIC" "/usr/local/bin/${SUPERCRONIC}" \
+ && ln -s "/usr/local/bin/${SUPERCRONIC}" /usr/local/bin/supercronic
+
 RUN chmod 0644 /etc/cron.d/updater-crontab &&\
-     crontab /etc/cron.d/updater-crontab \
+     crontab /etc/cron.d/updater-crontab
 
 # set the startup command to run your binary
-ENTRYPOINT bash -c 'service cron start; tail -f /dev/null'
+ENTRYPOINT bash -c 'supercronic /etc/cron.d/updater-crontab'
