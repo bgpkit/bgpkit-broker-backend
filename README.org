@@ -144,14 +144,14 @@ frequent full table dumps from RouteViews.
 Here is a step-by-step guide for deploying BGPKIT Broker with Docker
 
 1. Checkout the repository
-2. run ~docker-compose -f deployment/docker-compose.yml up~
+2. run ~docker-compose -f deployment/docker-compose.yml -p bgpkit-broker up~
 
-The initial database bootstrap phase would take about 3-5 minutes depending on
+The initial database bootstrap phase would take about 30 minutes to one hour depending on
 your deployment environment. It requires at least 30GB of free storage for the
 container and build processes.
 
 After the initial bootstrap phase is done, the API service should be up and
-running, currently hosted at port ~8080~. You can modify the port in
+running, currently hosted at port ~18888~. You can modify the port in
 ~docker-compose.yml~ file. In the mean time, a cronjob service also started,
 crawling collectors for recent data every 5 minutes. The frequency can be
 configured in the ~update.cron~. It is not recommended to go more frequent than
@@ -160,7 +160,8 @@ one crawl per 5 minutes.
 You can check out if the API is running by running:
 
 #+begin_src bash
-curl localhost:18888/latest
+curl 0.0.0.0:18888/latest
+curl "0.0.0.0:18888/search?ts_start=1643673600&ts_end=2022-02-02&collector_id=rrc00"
 #+end_src
 
 * LICENSE
