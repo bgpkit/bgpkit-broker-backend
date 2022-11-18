@@ -1,6 +1,4 @@
-version: '3.1'
-
-name: bgpkit-broker
+version: '3.8'
 
 networks:
   app-tier:
@@ -23,7 +21,7 @@ services:
 
   updater:
     container_name: bgpkit-broker-updater
-    entrypoint: bash -c 'sleep 10; while !</dev/tcp/postgres/5432; do sleep 30; echo "wait for postgres"; done; service cron start; while true; do sleep 30; done;'
+    entrypoint: bash -c 'sleep 10; while !</dev/tcp/postgres/5432; do sleep 30; echo "wait for postgres"; done; supercronic /etc/cron.d/updater-crontab'
     build:
       dockerfile: deployment/Dockerfile.updater
       context: ..
