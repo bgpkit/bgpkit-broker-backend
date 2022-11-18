@@ -1,5 +1,7 @@
 version: '3.1'
 
+name: bgpkit-broker
+
 networks:
   app-tier:
     driver: bridge
@@ -7,8 +9,10 @@ networks:
 services:
 
   postgres:
-    container_name: postgres
-    image: bitnami/postgresql:14
+    container_name: bgpkit-broker-postgres
+    build:
+      dockerfile: deployment/Dockerfile.postgres
+      context: ..
     restart: always
     env_file: db_cred.env
     volumes:
@@ -17,7 +21,7 @@ services:
     networks:
       - app-tier
 
-  bgpkit-broker-updater:
+  updater:
     container_name: bgpkit-broker-updater
     entrypoint: bash -c 'sleep 10; while !</dev/tcp/postgres/5432; do sleep 30; echo "wait for postgres"; done; service cron start; while true; do sleep 30; done;'
     build:
@@ -30,7 +34,7 @@ services:
     networks:
       - app-tier
 
-  bgpkit-broker-api:
+  api:
     container_name: bgpkit-broker-api
     entrypoint: bash -c 'sleep 10; while !</dev/tcp/postgres/5432; do sleep 30; echo "wait for postgres"; done; /usr/local/bin/start_api'
     ports:

@@ -1,0 +1,6 @@
+FROM bitnami/postgresql:14
+
+USER 0
+RUN install_packages curl
+
+USER 1001
