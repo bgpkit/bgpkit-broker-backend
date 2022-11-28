@@ -74,18 +74,21 @@ impl RipeRisScraper {
         Ok( () )
     }
 
-    async fn scrape_month(&self, url: String, month: String, collector_id: String, db: Option<&DbConnection>) -> Result<(), ScrapeError>{
+    async fn scrape_month(&self, url: String, month: String, collector_id: String, db: Option<&DbConnection>) -> Result<Vec<Item>, ScrapeError>{
         info!("scraping data for {} {} ...", collector_id.as_str(), &month);
         let body = reqwest::get(url.clone()).await?.text().await?;
         info!("    download for {} {} finished ", collector_id.as_str(), &month);
 
         let collector_clone = collector_id.clone();
 
-        let data_items: Vec<Item> =
+        let mut data_items: Vec<Item> =
         tokio::task::spawn_blocking(move || {
             let items = extract_link_size(body.as_str());
             items.iter().map(|(link, size)|{
-                let url = format!("{}/{}",url, link).replace("http", "https");
+                let url = match url.contains("https") {
+                    true => format!("{}/{}",url, link),
+                    false => format!("{}/{}",url, link).replace("http", "https")
+                };
                 let updates_link_pattern: Regex = Regex::new(r#".*(........\.....)\.gz.*"#).unwrap();
                 let time_str = updates_link_pattern.captures(&url).unwrap().get(1).unwrap().as_str();
                 let unix_time = NaiveDateTime::parse_from_str(time_str, "%Y%m%d.%H%M").unwrap();
@@ -126,15 +129,63 @@ impl RipeRisScraper {
                 }
             };
 
-            let inserted = conn.insert_items(&to_insert).await;
+            data_items = conn.insert_items(&to_insert).await;
 
             #[cfg(feature = "kafka")]
-            conn.notify(&inserted).await;
+            conn.notify(&data_items).await;
 
-            info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, to_insert.len(), inserted.len());
+            info!("    insert to db for {} {}... {}/{} inserted", collector_clone.as_str(), &month, to_insert.len(), data_items.len());
         }
 
         info!("scraping data for {} ... finished", &month);
-        Ok(())
+        Ok(data_items)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_parsing_new_ris() {
+        let scraper = RipeRisScraper{ mode: CrawlMode::Latest };
+        let mut res = scraper.scrape_month("https://test-data.ris.ripe.net/rrc00/2001.01/".to_string(), "2001.01".to_string(), "rrc00".to_string(), None).await.unwrap();
+        res.sort_by_key(|item| (item.data_type.clone(), item.ts_start.clone()));
+        dbg!(&res[0]);
+
+        let scraper = RipeRisScraper{ mode: CrawlMode::Latest };
+        let mut res2 = scraper.scrape_month("https://data.ris.ripe.net/rrc00/2001.01/".to_string(), "2001.01".to_string(), "rrc00".to_string(), None).await.unwrap();
+        res2.sort_by_key(|item| (item.data_type.clone(), item.ts_start.clone()));
+        dbg!(&res2[0]);
+
+        assert_eq!(res.len(), res2.len());
+        for i in 0..res.len() {
+            // every entry's every field should be the same except for the url and rough_size
+            assert_eq!(res[i].ts_start, res2[i].ts_start);
+            assert_eq!(res[i].ts_end, res2[i].ts_end);
+            assert_eq!(res[i].data_type, res2[i].data_type);
+            // rough size will no-longer be the same due to the new site losing point precision of the file sizes.
+            // assert_eq!(res[i].rough_size, res2[i].rough_size);
+        }
+
+        let scraper = RipeRisScraper{ mode: CrawlMode::Latest };
+        let mut res = scraper.scrape_month("http://test-data.ris.ripe.net/rrc00/2022.01/".to_string(), "2022.01".to_string(), "rrc00".to_string(), None).await.unwrap();
+        res.sort_by_key(|item| (item.data_type.clone(), item.ts_start.clone()));
+        dbg!(&res[0]);
+
+        let scraper = RipeRisScraper{ mode: CrawlMode::Latest };
+        let mut res2 = scraper.scrape_month("http://data.ris.ripe.net/rrc00/2022.01/".to_string(), "2022.01".to_string(), "rrc00".to_string(), None).await.unwrap();
+        res2.sort_by_key(|item| (item.data_type.clone(), item.ts_start.clone()));
+        dbg!(&res2[0]);
+
+        assert_eq!(res.len(), res2.len());
+        for i in 0..res.len() {
+            // every entry's every field should be the same except for the url and rough_size
+            assert_eq!(res[i].ts_start, res2[i].ts_start);
+            assert_eq!(res[i].ts_end, res2[i].ts_end);
+            assert_eq!(res[i].data_type, res2[i].data_type);
+            // rough size will no-longer be the same due to the new site losing point precision of the file sizes.
+            // assert_eq!(res[i].rough_size, res2[i].rough_size);
+        }
     }
 }
