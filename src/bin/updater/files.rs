@@ -89,10 +89,24 @@ fn main () {
     let db_url = match opts.db_url.clone() {
         Some(url) => url,
         None => {
-            env::var("DATABASE_URL").expect("DATABASE_URL must be set")
+            // Database access string used by Broker API
+            // DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST/$POSTGRES_DB
+
+            match env::var("DATABASE_URL") {
+                Ok(url) => {
+                    // DATABASE_URL already set, use the one specified
+                    url
+                }
+                Err(_) => {
+                    let host = env::var("POSTGRES_HOST").expect("POSTGRES_HOST must be set");
+                    let password = env::var("POSTGRES_PASSWORD").expect("POSTGRES_PASSWORD must be set");
+                    let user = env::var("POSTGRES_USER").expect("POSTGRES_USER must be set");
+                    let db = env::var("POSTGRES_DB").expect("POSTGRES_DB must be set");
+                    format!("postgres://{}:{}@{}/{}", user, password, host, db)
+                }
+            }
         }
     };
-
 
     rt.block_on(async {
         #[cfg(not(feature="kafka"))]

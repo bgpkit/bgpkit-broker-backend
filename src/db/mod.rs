@@ -66,6 +66,7 @@ impl DbConnection {
 
     #[cfg(not(feature = "kafka"))]
     pub async fn new(db_url: &str) -> DbConnection {
+        info!("connecting to BGPKIT Broker database at {}", db_url);
         let options = url_to_options(db_url, true, true);
         let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
         DbConnection{ pool }
@@ -73,6 +74,7 @@ impl DbConnection {
 
     #[cfg(feature="kafka")]
     pub async fn new_with_kafka(db_url: &str, kafka_brokers: Option<&str>, kafka_topic: Option<&str>) -> DbConnection {
+        info!("connecting to BGPKIT Broker database at {}", db_url);
         let options = url_to_options(db_url, true, true);
         let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
         let kafka: Option<KafkaProducer> =

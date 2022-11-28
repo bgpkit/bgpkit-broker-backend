@@ -15,10 +15,10 @@ from starlette.middleware.cors import CORSMiddleware
 
 
 def init_db():
-    host: str = os.environ.get("BROKER_PG_HOST")
-    user: str = os.environ.get("BROKER_PG_USER")
-    pgdb: str = os.environ.get("BROKER_PG_DB")
-    password: str = os.environ.get("BROKER_PG_PASSWORD")
+    host: str = os.environ.get("POSTGRES_HOST")
+    user: str = os.environ.get("POSTGRES_USER")
+    pgdb: str = os.environ.get("POSTGRES_DB")
+    password: str = os.environ.get("POSTGRES_PASSWORD")
 
     assert host is not None
     assert user is not None
