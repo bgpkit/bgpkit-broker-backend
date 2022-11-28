@@ -66,7 +66,7 @@ impl DbConnection {
 
     #[cfg(not(feature = "kafka"))]
     pub async fn new(db_url: &str) -> DbConnection {
-        let options = url_to_options(db_url, true);
+        let options = url_to_options(db_url, true, true);
         let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
         DbConnection{ pool }
     }
