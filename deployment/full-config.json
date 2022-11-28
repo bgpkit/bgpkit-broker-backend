@@ -5,107 +5,107 @@
       "collectors": [
         {
           "id": "rrc00",
-          "url": "http://data.ris.ripe.net/rrc00"
+          "url": "https://data.ris.ripe.net/rrc00"
         },
         {
           "id": "rrc01",
-          "url": "http://data.ris.ripe.net/rrc01"
+          "url": "https://data.ris.ripe.net/rrc01"
         },
         {
           "id": "rrc02",
-          "url": "http://data.ris.ripe.net/rrc02"
+          "url": "https://data.ris.ripe.net/rrc02"
         },
         {
           "id": "rrc03",
-          "url": "http://data.ris.ripe.net/rrc03"
+          "url": "https://data.ris.ripe.net/rrc03"
         },
         {
           "id": "rrc04",
-          "url": "http://data.ris.ripe.net/rrc04"
+          "url": "https://data.ris.ripe.net/rrc04"
         },
         {
           "id": "rrc05",
-          "url": "http://data.ris.ripe.net/rrc05"
+          "url": "https://data.ris.ripe.net/rrc05"
         },
         {
           "id": "rrc06",
-          "url": "http://data.ris.ripe.net/rrc06"
+          "url": "https://data.ris.ripe.net/rrc06"
         },
         {
           "id": "rrc07",
-          "url": "http://data.ris.ripe.net/rrc07"
+          "url": "https://data.ris.ripe.net/rrc07"
         },
         {
           "id": "rrc08",
-          "url": "http://data.ris.ripe.net/rrc08"
+          "url": "https://data.ris.ripe.net/rrc08"
         },
         {
           "id": "rrc09",
-          "url": "http://data.ris.ripe.net/rrc09"
+          "url": "https://data.ris.ripe.net/rrc09"
         },
         {
           "id": "rrc10",
-          "url": "http://data.ris.ripe.net/rrc10"
+          "url": "https://data.ris.ripe.net/rrc10"
         },
         {
           "id": "rrc11",
-          "url": "http://data.ris.ripe.net/rrc11"
+          "url": "https://data.ris.ripe.net/rrc11"
         },
         {
           "id": "rrc12",
-          "url": "http://data.ris.ripe.net/rrc12"
+          "url": "https://data.ris.ripe.net/rrc12"
         },
         {
           "id": "rrc13",
-          "url": "http://data.ris.ripe.net/rrc13"
+          "url": "https://data.ris.ripe.net/rrc13"
         },
         {
           "id": "rrc14",
-          "url": "http://data.ris.ripe.net/rrc14"
+          "url": "https://data.ris.ripe.net/rrc14"
         },
         {
           "id": "rrc15",
-          "url": "http://data.ris.ripe.net/rrc15"
+          "url": "https://data.ris.ripe.net/rrc15"
         },
         {
           "id": "rrc16",
-          "url": "http://data.ris.ripe.net/rrc16"
+          "url": "https://data.ris.ripe.net/rrc16"
         },
         {
           "id": "rrc18",
-          "url": "http://data.ris.ripe.net/rrc18"
+          "url": "https://data.ris.ripe.net/rrc18"
         },
         {
           "id": "rrc19",
-          "url": "http://data.ris.ripe.net/rrc19"
+          "url": "https://data.ris.ripe.net/rrc19"
         },
         {
           "id": "rrc20",
-          "url": "http://data.ris.ripe.net/rrc20"
+          "url": "https://data.ris.ripe.net/rrc20"
         },
         {
           "id": "rrc21",
-          "url": "http://data.ris.ripe.net/rrc21"
+          "url": "https://data.ris.ripe.net/rrc21"
         },
         {
           "id": "rrc22",
-          "url": "http://data.ris.ripe.net/rrc22"
+          "url": "https://data.ris.ripe.net/rrc22"
         },
         {
           "id": "rrc23",
-          "url": "http://data.ris.ripe.net/rrc23"
+          "url": "https://data.ris.ripe.net/rrc23"
         },
         {
           "id": "rrc24",
-          "url": "http://data.ris.ripe.net/rrc24"
+          "url": "https://data.ris.ripe.net/rrc24"
         },
         {
           "id": "rrc25",
-          "url": "http://data.ris.ripe.net/rrc25"
+          "url": "https://data.ris.ripe.net/rrc25"
         },
         {
           "id": "rrc26",
-          "url": "http://data.ris.ripe.net/rrc26"
+          "url": "https://data.ris.ripe.net/rrc26"
         }
       ]
     },
