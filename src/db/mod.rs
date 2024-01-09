@@ -50,7 +50,7 @@ fn url_to_options(db_url: &str, disable_prepare: bool, disable_logging: bool) ->
     }
 
     if disable_logging {
-        opts = opts.disable_statement_logging();
+        opts.disable_statement_logging();
     }
 
     opts
@@ -60,7 +60,7 @@ impl DbConnection {
     #[cfg(feature = "kafka")]
     pub async fn new(db_url: &str) -> DbConnection {
         let options = url_to_options(db_url, true, true);
-        let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+        let pool = PgPoolOptions::new().max_connections(1).connect_with(options).await.unwrap();
         DbConnection{ pool, kafka: None }
     }
 
@@ -104,7 +104,6 @@ impl DbConnection {
             " ON CONFLICT DO NOTHING "
         );
         let query = query_builder.build();
-        self.pool.execute("DEALLOCATE ALL").await.unwrap();
         let _res = self.pool.execute(query).await;
     }
 
@@ -118,7 +117,6 @@ impl DbConnection {
         };
         let end_ts = start_ts + chrono::Duration::days(31);
 
-        self.pool.execute("DEALLOCATE ALL").await.unwrap();
         let records = sqlx::query(
            r#"
            SELECT count(*) as c
@@ -145,7 +143,6 @@ impl DbConnection {
             }
         };
         let end_ts = start_ts + chrono::Duration::days(31);
-        self.pool.execute("DEALLOCATE ALL").await.unwrap();
         let urls = sqlx::query(
             r#"
            SELECT url
@@ -188,7 +185,6 @@ impl DbConnection {
             " RETURNING *"
             );
             let query = query_builder.build();
-            self.pool.execute("DEALLOCATE ALL").await.unwrap();
             let res: Vec<Item> = query.fetch_all(&self.pool).await.unwrap().into_iter().map(|row: PgRow|{
                 Item{
                     ts_start: row.try_get("ts_start").unwrap(),
